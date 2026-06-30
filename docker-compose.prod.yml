@@ -1,11 +1,12 @@
 # =============================================================================
 # Producción VPS — pull desde GHCR (sin build en el servidor)
-# Repo: https://github.com/lelion13/app-telemedicina
-# Imagen: ghcr.io/lelion13/app-telemedicina
+# Patrón Traefik igual que app-semaforo / app-figus / app-habitacion:
+# sin red externa "traefik"; Traefik en host descubre contenedores por labels.
 # =============================================================================
-# Uso:
-#   docker compose -f docker-compose.prod.yml pull app
-#   docker compose -f docker-compose.prod.yml up -d
+# Uso (siempre con --env-file .env.prod o scripts/vps-compose.sh):
+#   cp .env.prod.example .env.prod   # completar secretos + LIVEKIT_NODE_IP
+#   ./scripts/vps-compose.sh pull app
+#   ./scripts/vps-compose.sh up -d
 # =============================================================================
 
 name: app-telemedicina
@@ -16,19 +17,17 @@ services:
     container_name: telemedicina-app
     restart: unless-stopped
     env_file:
-      - .env
+      - .env.prod
     environment:
       MONGODB_URI: mongodb://mongo:27017/telemedicina
       LIVEKIT_URL: ${LIVEKIT_URL:-wss://livekit.telemedicina.lionapp.cloud}
     depends_on:
       mongo:
         condition: service_healthy
-    networks:
-      - internal
-      - traefik
+    expose:
+      - "3000"
     labels:
       - traefik.enable=true
-      - traefik.docker.network=${TRAEFIK_NETWORK:-traefik}
       - traefik.http.routers.telemedicina-app.rule=Host(`${APP_HOST:-telemedicina.lionapp.cloud}`)
       - traefik.http.routers.telemedicina-app.entrypoints=websecure
       - traefik.http.routers.telemedicina-app.tls=true
@@ -49,8 +48,6 @@ services:
     restart: unless-stopped
     volumes:
       - mongo_data:/data/db
-    networks:
-      - internal
     expose:
       - "27017"
     healthcheck:
@@ -69,8 +66,6 @@ services:
     command: redis-server --save 60 1 --loglevel warning
     volumes:
       - redis_data:/data
-    networks:
-      - internal
     expose:
       - "6379"
     healthcheck:
@@ -82,7 +77,7 @@ services:
       - no-new-privileges:true
 
   livekit:
-    image: livekit/livekit-server:latest
+    image: livekit/livekit-server:v1.8.0
     container_name: telemedicina-livekit
     restart: unless-stopped
     command: --config /etc/livekit.yaml --node-ip ${LIVEKIT_NODE_IP:-}
@@ -93,15 +88,14 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+    expose:
+      - "7880"
     ports:
+      # WebRTC UDP — rango chico (101 puertos); 50000-60000 tarda 15+ min en levantar
       - "7881:7881/tcp"
-      - "50000-60000:50000-60000/udp"
-    networks:
-      - internal
-      - traefik
+      - "50000-50100:50000-50100/udp"
     labels:
       - traefik.enable=true
-      - traefik.docker.network=${TRAEFIK_NETWORK:-traefik}
       - traefik.http.routers.telemedicina-livekit.rule=Host(`${LIVEKIT_HOST:-livekit.telemedicina.lionapp.cloud}`)
       - traefik.http.routers.telemedicina-livekit.entrypoints=websecure
       - traefik.http.routers.telemedicina-livekit.tls=true
@@ -110,13 +104,6 @@ services:
       - traefik.http.services.telemedicina-livekit.loadbalancer.server.scheme=http
     security_opt:
       - no-new-privileges:true
-
-networks:
-  internal:
-    driver: bridge
-  traefik:
-    external: true
-    name: ${TRAEFIK_NETWORK:-traefik}
 
 volumes:
   mongo_data:

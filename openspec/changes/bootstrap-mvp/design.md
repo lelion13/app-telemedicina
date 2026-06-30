@@ -67,7 +67,7 @@ Monolito Next.js 16 (App Router) con TypeScript y React 19. Toda la lógica de n
          ┌─────────────┼─────────────┐
          ▼             ▼             ▼
   telemedicina.   livekit.      (UDP host)
-  lionapp.cloud   telemedicina.  7881, 50000-60000
+  lionapp.cloud   telemedicina.  7881, 50000-50100
          │        lionapp.cloud
          ▼             ▼
   ┌────────────┐ ┌────────────┐

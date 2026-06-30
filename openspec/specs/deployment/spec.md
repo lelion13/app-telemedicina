@@ -38,7 +38,7 @@ El despliegue DEBE usar Traefik existente en el VPS para TLS y enrutamiento. NO 
 
 ### Requirement: WebRTC UDP
 
-La documentación DEBE especificar puertos UDP requeridos en firewall del host (7881 + rango 50000-60000) para WebRTC.
+La documentación DEBE especificar puertos UDP requeridos en firewall del host (7881/tcp + rango 50000-50100/udp) para WebRTC. NO DEBE recomendar mapear 50000-60000 en docker-compose (congela el host al publicar ~10k puertos).
 
 ### Requirement: Node.js 22
 

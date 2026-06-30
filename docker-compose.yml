@@ -1,9 +1,7 @@
 # =============================================================================
 # App Telemedicina — Docker Compose (desarrollo / build local)
 # Producción en VPS: usar docker-compose.prod.yml (imagen desde GHCR).
-# =============================================================================
-# Traefik en el VPS es el único reverse proxy (sin Caddy/Nginx interno).
-# Ajustá TRAEFIK_NETWORK al nombre de red Docker que usa tu Traefik.
+# Traefik en el VPS (host mode) descubre contenedores por labels Docker.
 # =============================================================================
 
 name: app-telemedicina
@@ -23,13 +21,10 @@ services:
     depends_on:
       mongo:
         condition: service_healthy
-    networks:
-      - internal
-      - traefik
+    expose:
+      - "3000"
     labels:
       - traefik.enable=true
-      - traefik.docker.network=${TRAEFIK_NETWORK:-traefik}
-      # App principal
       - traefik.http.routers.telemedicina-app.rule=Host(`${APP_HOST:-telemedicina.lionapp.cloud}`)
       - traefik.http.routers.telemedicina-app.entrypoints=websecure
       - traefik.http.routers.telemedicina-app.tls=true
@@ -48,8 +43,8 @@ services:
     restart: unless-stopped
     volumes:
       - mongo_data:/data/db
-    networks:
-      - internal
+    expose:
+      - "27017"
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 30s
@@ -64,8 +59,8 @@ services:
     command: redis-server --save 60 1 --loglevel warning
     volumes:
       - redis_data:/data
-    networks:
-      - internal
+    expose:
+      - "6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 30s
@@ -73,7 +68,7 @@ services:
       retries: 3
 
   livekit:
-    image: livekit/livekit-server:latest
+    image: livekit/livekit-server:v1.8.0
     container_name: telemedicina-livekit
     restart: unless-stopped
     command: --config /etc/livekit.yaml --node-ip ${LIVEKIT_NODE_IP:-}
@@ -84,29 +79,20 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+    expose:
+      - "7880"
     ports:
       # WebRTC requiere UDP en el host — Traefik no proxya UDP
       - "7881:7881/tcp"
       - "50000-50100:50000-50100/udp"
-    networks:
-      - internal
-      - traefik
     labels:
       - traefik.enable=true
-      - traefik.docker.network=${TRAEFIK_NETWORK:-traefik}
       - traefik.http.routers.telemedicina-livekit.rule=Host(`${LIVEKIT_HOST:-livekit.telemedicina.lionapp.cloud}`)
       - traefik.http.routers.telemedicina-livekit.entrypoints=websecure
       - traefik.http.routers.telemedicina-livekit.tls=true
       - traefik.http.routers.telemedicina-livekit.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-letsencrypt}
       - traefik.http.services.telemedicina-livekit.loadbalancer.server.port=7880
       - traefik.http.services.telemedicina-livekit.loadbalancer.server.scheme=http
-
-networks:
-  internal:
-    driver: bridge
-  traefik:
-    external: true
-    name: ${TRAEFIK_NETWORK:-traefik}
 
 volumes:
   mongo_data:
