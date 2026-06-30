@@ -21,6 +21,8 @@ type ConsultaPacientePanelProps = {
 
 type Paso = "bienvenida" | "consentimiento" | "espera" | "consulta";
 
+type GpsUiEstado = "idle" | "pendiente" | GpsOrigen;
+
 function formatFechaHora(iso: string): string {
   return new Date(iso).toLocaleString("es-AR", {
     timeZone: "America/Argentina/Buenos_Aires",
@@ -38,8 +40,8 @@ export function ConsultaPacientePanel({
   gpsInicial,
 }: ConsultaPacientePanelProps) {
   const [paso, setPaso] = useState<Paso>(gpsInicial ? "espera" : "bienvenida");
-  const [gpsEstado, setGpsEstado] = useState<"pendiente" | GpsOrigen>(
-    gpsInicial?.origen ?? "pendiente",
+  const [gpsEstado, setGpsEstado] = useState<GpsUiEstado>(
+    gpsInicial?.origen ?? "idle",
   );
   const [error, setError] = useState<string | null>(null);
   const [gpsCompletado, setGpsCompletado] = useState(!!gpsInicial);
@@ -75,7 +77,6 @@ export function ConsultaPacientePanel({
   }
 
   async function compartirUbicacion() {
-    setPaso("consentimiento");
     setGpsEstado("pendiente");
 
     if (!navigator.geolocation) {
