@@ -116,11 +116,16 @@ docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
 
 El stack debería quedar **Up en menos de 1 minuto**. Si `livekit` tarda más de 2 min en `Starting`, revisá que no hayas dejado el rango UDP grande.
 
-Primera vez: seed del admin (desde tu máquina con `MONGODB_URI` al VPS, o contenedor temporal):
+Primera vez — usuario admin (desde `/docker/app-telemedicina`, sin clonar el repo):
 
 ```bash
-npm run seed
+chmod +x scripts/seed-admin-vps.sh
+./scripts/seed-admin-vps.sh
 ```
+
+Requisitos en `.env.prod`: `ADMIN_PASSWORD` (mín. 12 caracteres), opcionalmente `ADMIN_EMAIL`, `ADMIN_NOMBRE`, `ADMIN_APELLIDO`.
+
+Login: `https://telemedicina.lionapp.cloud/login`
 
 ## Desarrollo local (build en máquina)
 
