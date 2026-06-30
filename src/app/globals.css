@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+:root {
+  --clinical-900: #0b3b4c;
+  --clinical-700: #1a6b7a;
+  --paper-50: #f7f9f8;
+  --paper-100: #eef2f0;
+  --signal-verified: #2d8b5e;
+  --signal-warn: #c47d0e;
+  --signal-alert: #b83a3a;
+  --mist-400: #8fa5ad;
+}
+
+@theme inline {
+  --color-clinical-900: var(--clinical-900);
+  --color-clinical-700: var(--clinical-700);
+  --color-paper-50: var(--paper-50);
+  --color-paper-100: var(--paper-100);
+  --color-signal-verified: var(--signal-verified);
+  --color-signal-warn: var(--signal-warn);
+  --color-signal-alert: var(--signal-alert);
+  --color-mist-400: var(--mist-400);
+  --font-display: var(--font-fraunces);
+  --font-body: var(--font-plus-jakarta);
+  --font-data: var(--font-ibm-plex-mono);
+}
+
+body {
+  background: var(--paper-50);
+  color: var(--clinical-900);
+  font-family: var(--font-plus-jakarta), system-ui, sans-serif;
+}
+
+@keyframes gps-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.03);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-\[gps-breathe_2s_ease-in-out_infinite\] {
+    animation: none;
+  }
+}

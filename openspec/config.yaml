@@ -1,0 +1,39 @@
+schema: spec-driven
+
+context: |
+  Proyecto: app-telemedicina — plataforma de teleasistencia médica/profesional.
+  Dominio producción: telemedicina.lionapp.cloud (Traefik en VPS Hostinger).
+  Jurisdicción: Argentina (Ley 25.326, datos de salud sensibles).
+  Tech stack: Next.js 16 (App Router, React 19, TypeScript, Turbopack), MongoDB + Mongoose,
+  NextAuth.js (Credentials), LiveKit self-hosted, Nodemailer (SMTP), Redis (LiveKit).
+  Proxy: Traefik en VPS (sin Caddy/Nginx interno). Node.js 22 en Docker.
+  Idioma: español (Argentina) en UI, mails y documentación.
+  Roles: admin, empresa (tenant), profesional, paciente (sin cuenta, acceso por token).
+  Alcance actual: documentación SDD únicamente (sin código de aplicación).
+
+rules:
+  proposal:
+    - Incluir plan de rollback para cambios de infraestructura
+    - Identificar módulos afectados con rutas concretas
+    - Documentar decisiones de alcance explícitamente
+  specs:
+    - Usar formato Given/When/Then para escenarios
+    - Usar palabras clave RFC 2119 (DEBE/SHALL, NO DEBE, DEBERÍA, PUEDE)
+    - Especificar QUÉ, no CÓMO (sin detalles de implementación)
+  design:
+    - Incluir diagramas de secuencia para flujos complejos
+    - Documentar decisiones de arquitectura con alternativas y rationale
+    - Referenciar cumplimiento normativo argentino donde aplique
+  tasks:
+    - Agrupar por fase con numeración jerárquica
+    - Cada tarea completable en una sesión de trabajo
+    - Marcar dependencias entre fases
+  apply:
+    tdd: false
+    test_command: "npm test"
+  verify:
+    test_command: "npm test"
+    build_command: "npm run build"
+    coverage_threshold: 0
+  archive:
+    - Advertir antes de fusionar deltas destructivos en specs principales

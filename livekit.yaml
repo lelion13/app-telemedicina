@@ -1,0 +1,24 @@
+# LiveKit self-hosted — keys se inyectan vía variables de entorno en docker-compose
+# Sin grabación: no egress ni roomRecord en tokens de acceso.
+port: 7880
+bind_addresses:
+  - "0.0.0.0"
+
+rtc:
+  tcp_port: 7881
+  port_range_start: 50000
+  port_range_end: 60000
+  use_external_ip: true
+
+redis:
+  address: redis:6379
+
+logging:
+  level: info
+
+room:
+  auto_create: false
+  max_participants: 2
+
+turn:
+  enabled: false

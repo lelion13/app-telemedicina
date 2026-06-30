@@ -1,0 +1,15 @@
+node_modules
+.next
+out
+.git
+.gitignore
+openspec
+prompt.md
+scaffold-tmp
+*.md
+!README.md
+.env
+.env.*
+!.env.example
+coverage
+.vercel
