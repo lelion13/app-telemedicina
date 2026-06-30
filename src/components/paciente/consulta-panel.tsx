@@ -204,7 +204,9 @@ export function ConsultaPacientePanel({
             )}
           </div>
 
-          <GpsSeal estado={gpsEstado} />
+          {gpsEstado !== "idle" && gpsEstado !== "pendiente" && (
+            <GpsSeal estado={gpsEstado} />
+          )}
 
           <p className="text-center text-sm text-clinical-700">
             {gpsEstado === "navegador"
