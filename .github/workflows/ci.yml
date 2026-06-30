@@ -39,10 +39,10 @@ jobs:
 
       - name: Validate production compose
         run: |
-          cp .env.prod.example .env.prod.ci
-          sed -i 's/LIVEKIT_NODE_IP=/LIVEKIT_NODE_IP=203.0.113.1/' .env.prod.ci
-          sed -i 's/tu-api-key/ci-test-livekit-key/' .env.prod.ci
-          sed -i 's/tu-api-secret/ci-test-livekit-secret-32chars-min/' .env.prod.ci
-          sed -i 's/generar-con-openssl-rand-base64-32/ci-test-auth-secret-min-32-chars-long/g' .env.prod.ci
-          sed -i 's/generar-secreto-distinto-a-nextauth/ci-test-patient-secret-min-32-chars/' .env.prod.ci
-          docker compose --env-file .env.prod.ci -f docker-compose.prod.yml config --quiet
+          cp .env.prod.example .env.prod
+          sed -i 's/LIVEKIT_NODE_IP=/LIVEKIT_NODE_IP=203.0.113.1/' .env.prod
+          sed -i 's/tu-api-key/ci-test-livekit-key/' .env.prod
+          sed -i 's/tu-api-secret/ci-test-livekit-secret-32chars-min/' .env.prod
+          sed -i 's/generar-con-openssl-rand-base64-32/ci-test-auth-secret-min-32-chars-long/g' .env.prod
+          sed -i 's/generar-secreto-distinto-a-nextauth/ci-test-patient-secret-min-32-chars/' .env.prod
+          docker compose --env-file .env.prod -f docker-compose.prod.yml config --quiet
