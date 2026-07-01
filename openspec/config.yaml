@@ -9,7 +9,7 @@ context: |
   Proxy: Traefik en VPS (sin Caddy/Nginx interno). Node.js 22 en Docker.
   Idioma: español (Argentina) en UI, mails y documentación.
   Roles: admin, empresa (tenant), profesional, paciente (sin cuenta, acceso por token).
-  Alcance actual: documentación SDD únicamente (sin código de aplicación).
+  Alcance: MVP implementado (fases 1–10) y desplegado en VPS con warnings en fase 11 (E2E, SMTP, WebRTC smoke pendientes).
 
 rules:
   proposal:

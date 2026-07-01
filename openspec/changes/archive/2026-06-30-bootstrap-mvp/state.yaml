@@ -1,0 +1,31 @@
+change: bootstrap-mvp
+status: archived
+phase: mvp-deployed-with-warnings
+created: 2026-06-29
+archived: 2026-06-30
+description: MVP teleasistencia implementado (fases 1–10) + despliegue VPS hardened
+artifacts:
+  - proposal.md
+  - design.md
+  - tasks.md
+  - security-analysis.md
+  - frontend-design.md
+  - verify-report.md
+  - lessons-learned.md
+decisions:
+  stack: nextjs16-mongodb-livekit
+  jurisdiction: argentina
+  proxy: traefik-host-mode-labels-only
+  availability: global-slots-by-admin
+  realtime: sse
+  patient_token: reusable-within-window
+  recording: none
+  scope: mvp-implemented
+  language: es-AR
+  webrtc_udp_range: 50000-50100
+  prod_env: .env.prod
+commits:
+  initial: a768d74
+  deploy-hardening: b6d40cc
+  seed-vps: 95149ce
+  gps-fix: 4a7fddf

@@ -18,14 +18,14 @@ Construir una plataforma web de teleasistencia médica/profesional que permita a
 - Token de paciente reutilizable dentro de ventana de validez
 - Stack: Next.js 16 + MongoDB + NextAuth + Nodemailer + Docker + Traefik
 
-### Out of Scope (esta fase)
+### Out of Scope (fase archivada — ver changes futuros)
 
-- Código fuente de la aplicación
 - Grabación de videollamadas
 - Facturación, recetas electrónicas, integración con obras sociales
 - App móvil nativa
 - Certificaciones formales (ISO 27001, etc.)
-- Proxy interno Caddy/Nginx (Traefik en VPS es suficiente)
+- E2E Playwright completo (pendiente `polish-qa`)
+- SMTP producción configurado
 
 ## Approach
 

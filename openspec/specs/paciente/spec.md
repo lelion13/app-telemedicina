@@ -32,9 +32,31 @@ El sistema DEBE validar el token en cada acceso a `/consulta/[token]`: firma vá
 - WHEN el paciente vuelve a abrir el link
 - THEN el sistema DEBE permitir el acceso nuevamente
 
+### Requirement: Consentimiento GPS interactivo
+
+En la pantalla de consentimiento, los botones "Compartir ubicación" y "Continuar sin compartir" DEBEN estar habilitados antes de iniciar la solicitud al navegador. El estado de carga (`pendiente`) DEBE activarse solo tras el clic del usuario.
+
+#### Scenario: Botones habilitados al entrar a consentimiento
+
+- GIVEN un paciente en `/consulta/[token]` que avanzó a consentimiento GPS
+- WHEN la pantalla se muestra sin solicitud en curso
+- THEN ambos botones DEBEN estar clickeables
+
+#### Scenario: Compartir ubicación
+
+- GIVEN permiso de geolocalización concedido
+- WHEN el paciente confirma compartir
+- THEN el sistema DEBE registrar GPS y avanzar a sala de espera
+
+#### Scenario: Continuar sin compartir
+
+- GIVEN el paciente rechaza o no tiene geolocalización
+- WHEN elige continuar sin compartir
+- THEN el sistema DEBE registrar origen `no_verificado` o `ip_fallback` y permitir ingreso a espera
+
 ### Requirement: Pantalla de consulta
 
-La pantalla del paciente DEBE mostrar: fecha/hora del turno, nombre del profesional si asignado, solicitud de permiso GPS, y botón para ingresar a videollamada (habilitado tras flujo GPS).
+La pantalla del paciente DEBE mostrar: fecha/hora del turno, nombre del profesional si asignado, flujo de consentimiento GPS (compartir o continuar sin), y botón para ingresar a videollamada (habilitado tras flujo GPS).
 
 ### Requirement: Registro de accesos
 

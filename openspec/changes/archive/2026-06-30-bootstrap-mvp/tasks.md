@@ -101,10 +101,16 @@
 
 - [ ] 11.1 Tests E2E Playwright: flujo completo agendar → consulta → videollamada
 - [ ] 11.2 Verificar responsive mobile-first en todas las pantallas
-- [ ] 11.3 Deploy en VPS: `docker compose -f docker-compose.prod.yml pull && up -d`, Traefik routing
+- [x] 11.3 Deploy en VPS: stack Up en `srv1623377` (manual, ver `lessons-learned.md`)
 - [ ] 11.4 Smoke test WebRTC en red real (verificar UDP)
 - [ ] 11.5 Verificar mails SMTP en producción
-- [ ] 11.6 Ejecutar `sdd-verify` contra specs
+- [x] 11.6 Ejecutar `sdd-verify` contra specs → `verify-report.md`
 - [x] 11.7 GitHub Actions CI (`npm test` + `npm run build`) en PR/push a `main`
 - [x] 11.8 Publicar imagen en GHCR (`ghcr.io/lelion13/app-telemedicina`) al merge en `main`
 - [x] 11.9 `docker-compose.prod.yml` para pull en VPS sin build local
+- [x] 11.10 Hardening compose prod: UDP 50000–50100, sin red traefik, LiveKit v1.8.0
+- [x] 11.11 `scripts/seed-admin-vps.sh`, `.env.prod.example`, `scripts/vps-compose.sh`
+- [x] 11.12 CI valida `docker compose config` con `.env.prod`
+- [x] 11.13 Fix UI GPS paciente: estado `idle` (botones no deshabilitados al inicio)
+- [x] 11.14 `docs/deploy.md` post-mortem y guía manual VPS
+- [x] 11.15 Archivo SDD: verify + lessons-learned + sync specs

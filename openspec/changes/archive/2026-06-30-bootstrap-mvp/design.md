@@ -196,10 +196,18 @@ interface TurnoActualizadoEvent {
 
 ## Migration / Rollout
 
-No migration required (greenfield). Despliegue: build imagen → `docker compose up -d` → Traefik detecta labels → verificar healthchecks → seed admin inicial.
+No migration required (greenfield). Despliegue validado:
+
+1. `docker compose --env-file .env.prod -f docker-compose.prod.yml pull app && up -d`
+2. Traefik descubre labels (sin red Docker `traefik`)
+3. `./scripts/seed-admin-vps.sh` para admin inicial
+4. DNS dual + firewall UDP 50000–50100
+
+Ver `docs/deploy.md` y `lessons-learned.md` (archivo SDD).
 
 ## Open Questions
 
-- [ ] Subdominio LiveKit exacto (`livekit.telemedicina.lionapp.cloud` vs path-based)
+- [x] Subdominio LiveKit: `livekit.telemedicina.lionapp.cloud`
 - [ ] Proveedor SMTP definitivo en producción
 - [ ] Retención exacta de logs GPS (sugerido: 2 años, validar con cliente)
+- [ ] TURN en LiveKit si NAT estricto bloquea WebRTC

@@ -44,9 +44,28 @@ La documentación DEBE especificar puertos UDP requeridos en firewall del host (
 
 El Dockerfile DEBE usar imagen base `node:22-alpine` o equivalente (Next.js 16 requiere Node ≥ 20.9).
 
+### Requirement: Variables de entorno producción
+
+En VPS, las variables DEBEN residir en `.env.prod` (plantilla: `.env.prod.example`, nunca commitear secretos). Todo comando `docker compose` en producción DEBE usar `--env-file .env.prod` o `scripts/vps-compose.sh`.
+
+### Requirement: DNS dual
+
+El despliegue DEBE tener dos registros A apuntando a la IP del VPS:
+
+- `telemedicina.lionapp.cloud` — aplicación Next.js
+- `livekit.telemedicina.lionapp.cloud` — señalización LiveKit / WebSocket
+
+### Requirement: Traefik sin red Docker externa
+
+En VPS con Traefik en `network_mode: host`, el compose de producción NO DEBE declarar red externa `traefik`. El descubrimiento DEBE ser solo por labels Docker.
+
+### Requirement: Seed admin en VPS
+
+DEBE existir un script documentado (`scripts/seed-admin-vps.sh`) que cree el usuario admin sin clonar el repo ni ejecutar `npm` en producción.
+
 ### Requirement: Variables de entorno
 
-Las siguientes variables DEBEN externalizarse en `.env` (nunca commitear): `MONGODB_URI`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `LIVEKIT_URL`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, `APP_BASE_URL`, `GPS_ACCURACY_THRESHOLD_M`, `TOKEN_VALID_BEFORE_MIN`, `TOKEN_VALID_AFTER_MIN`.
+Las siguientes variables DEBEN externalizarse en `.env` / `.env.prod` (nunca commitear): `MONGODB_URI`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `LIVEKIT_URL`, `LIVEKIT_NODE_IP`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, `APP_BASE_URL`, `GPS_ACCURACY_THRESHOLD_M`, `TOKEN_VALID_BEFORE_MIN`, `TOKEN_VALID_AFTER_MIN`, `ADMIN_PASSWORD` (solo seed).
 
 ### Requirement: HTTPS obligatorio
 
@@ -54,7 +73,11 @@ En producción, todo tráfico DEBE usar HTTPS. Cookies de sesión DEBEN marcarse
 
 ### Requirement: Healthchecks
 
-Los contenedores `app`, `mongo` y `livekit` DEBEN definir healthchecks en docker-compose.
+Los contenedores `app` y `mongo` DEBEN definir healthchecks en docker-compose. El contenedor `livekit` DEBERÍA definir healthcheck (pendiente de alineación).
+
+### Requirement: SMTP opcional en MVP
+
+Si `SMTP_HOST` está vacío, el sistema DEBE crear el turno igualmente y DEBERÍA informar en UI que el mail no se envió. El link de consulta DEBE permanecer en `Turno.accessToken` para recuperación manual.
 
 ### Requirement: Volúmenes persistentes
 
