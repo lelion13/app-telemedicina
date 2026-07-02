@@ -10,6 +10,7 @@
     "test": "vitest run",
     "seed": "tsx scripts/seed.ts",
     "migrate-agendas": "tsx scripts/migrate-franjas-to-agendas.ts",
+    "migrate-agendas:prod": "node migrate-agendas.mjs",
     "purge-audit": "tsx scripts/purge-audit.ts"
   },
   "dependencies": {

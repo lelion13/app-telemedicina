@@ -22,6 +22,7 @@ export function buildEmpresaAgendaFilter(
     activa: true,
     fecha: { $gte: fechaMin },
     $or: [
+      { empresaIds: { $exists: false } },
       { empresaIds: { $size: 0 } },
       { empresaIds: new Types.ObjectId(empresaId) },
     ],

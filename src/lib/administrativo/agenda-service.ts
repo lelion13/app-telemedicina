@@ -3,7 +3,7 @@ import {
   getAgendaDayRange,
   mapAgendaSlotStatuses,
 } from "@/lib/agenda/slot-status";
-import { getAgendaDayKey, parseAgendaDayKey } from "@/lib/agenda/slots";
+import { normalizeAgendaDateInput } from "@/lib/agenda/slots";
 import type { agendaInputSchema, agendaUpdateSchema } from "@/lib/validations/agenda";
 import { Agenda, Turno } from "@/models";
 import type { z } from "zod";
@@ -19,7 +19,7 @@ export type ListAgendasFilters = {
 };
 
 function normalizeAgendaFecha(fechaInput: string): Date {
-  return parseAgendaDayKey(getAgendaDayKey(new Date(fechaInput)));
+  return normalizeAgendaDateInput(fechaInput);
 }
 
 function toObjectIds(ids?: string[]): Types.ObjectId[] {

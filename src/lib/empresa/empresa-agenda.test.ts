@@ -11,7 +11,7 @@ describe("empresa agendas", () => {
     const filter = buildEmpresaAgendaFilter("507f1f77bcf86cd799439011");
 
     expect(filter.activa).toBe(true);
-    expect(filter.$or).toHaveLength(2);
+    expect(filter.$or).toHaveLength(3);
     expect(filter.fecha.$gte).toBeInstanceOf(Date);
   });
 

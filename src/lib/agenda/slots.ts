@@ -42,6 +42,25 @@ export function parseAgendaDayKey(dayKey: string): Date {
   return new Date(`${dayKey}T12:00:00.000Z`);
 }
 
+/** Interpreta YYYY-MM-DD del input date sin corrimiento UTC→Argentina. */
+export function normalizeAgendaDateInput(fechaInput: string): Date {
+  const dayMatch = /^(\d{4}-\d{2}-\d{2})/.exec(fechaInput.trim());
+  if (dayMatch) {
+    return parseAgendaDayKey(dayMatch[1]);
+  }
+  return parseAgendaDayKey(getAgendaDayKey(new Date(fechaInput)));
+}
+
+export function agendaDayKeyFromFecha(fecha: Date | string): string {
+  if (typeof fecha === "string") {
+    const dayMatch = /^(\d{4}-\d{2}-\d{2})/.exec(fecha.trim());
+    if (dayMatch) {
+      return dayMatch[1];
+    }
+  }
+  return getAgendaDayKey(new Date(fecha));
+}
+
 export function isSameAgendaDay(a: Date, b: Date): boolean {
   return getAgendaDayKey(a) === getAgendaDayKey(b);
 }
@@ -76,10 +95,6 @@ export function getHoraSlot(fechaHoraProgramada: Date): string {
 }
 
 export function buildSlotDateTime(agendaFecha: Date | string, hora: string): Date {
-  const dayKey =
-    typeof agendaFecha === "string"
-      ? getAgendaDayKey(new Date(agendaFecha))
-      : getAgendaDayKey(agendaFecha);
-
+  const dayKey = agendaDayKeyFromFecha(agendaFecha);
   return new Date(`${dayKey}T${hora}:00-03:00`);
 }

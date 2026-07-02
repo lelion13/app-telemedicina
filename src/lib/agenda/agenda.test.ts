@@ -4,6 +4,7 @@ import {
   generateSlots,
   getAgendaDayKey,
   matchesAgendaSlot,
+  normalizeAgendaDateInput,
   parseAgendaDayKey,
 } from "@/lib/agenda/slots";
 
@@ -48,6 +49,11 @@ describe("agenda slots", () => {
   it("normaliza clave de día en Argentina", () => {
     const day = getAgendaDayKey(new Date("2026-07-15T03:00:00.000Z"));
     expect(day).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it("guarda el día del input date sin corrimiento UTC", () => {
+    const fecha = normalizeAgendaDateInput("2026-07-02");
+    expect(getAgendaDayKey(fecha)).toBe("2026-07-02");
   });
 });
 

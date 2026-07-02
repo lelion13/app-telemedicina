@@ -12,6 +12,12 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
+RUN npx esbuild scripts/migrate-franjas-to-agendas.ts \
+  --bundle \
+  --platform=node \
+  --target=node22 \
+  --outfile=migrate-agendas.mjs \
+  --packages=external
 
 FROM node:22-alpine AS runner
 WORKDIR /app
@@ -23,6 +29,7 @@ RUN apk add --no-cache wget \
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/migrate-agendas.mjs ./migrate-agendas.mjs
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000

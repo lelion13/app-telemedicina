@@ -135,11 +135,29 @@ Login administrativo: mismo `/login`, redirige a `/administrativo`.
 
 ### Migración v2: franjas → agendas
 
-Tras desplegar la versión con modelo **Agenda** (roles-and-agendas v2), ejecutá **una vez** la migración de datos antes de que las empresas agenden turnos:
+Tras desplegar la versión con modelo **Agenda** (roles-and-agendas v2), ejecutá **una vez** la migración de datos antes de que las empresas agenden turnos.
+
+**Sin `git pull` en el VPS** — solo descarga un archivo (~4 KB) y usa el contenedor `mongo` que ya tenés:
 
 ```bash
 cd /docker/app-telemedicina
-docker compose --env-file .env.prod -f docker-compose.prod.yml exec app npm run migrate-agendas
+curl -fsSL https://raw.githubusercontent.com/lelion13/app-telemedicina/main/scripts/migrate-agendas-mongosh.js \
+  | docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T mongo mongosh telemedicina --quiet --file /dev/stdin
+```
+
+O con el wrapper (mismo efecto):
+
+```bash
+chmod +x scripts/migrate-agendas-vps.sh   # solo si ya tenés este script en el VPS
+./scripts/migrate-agendas-vps.sh
+```
+
+**Con imagen nueva de GHCR** (tras push con `migrate-agendas.mjs` en el Dockerfile):
+
+```bash
+./scripts/vps-compose.sh pull app
+./scripts/vps-compose.sh up -d
+docker compose --env-file .env.prod -f docker-compose.prod.yml exec app npm run migrate-agendas:prod
 ```
 
 La migración convierte franjas horarias legacy en agendas por día y asigna `agendaId` a turnos existentes. Sin agendas activas, el alta de turnos falla con *"El horario elegido no está dentro de una agenda disponible"*.
