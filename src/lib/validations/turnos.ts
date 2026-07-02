@@ -11,6 +11,7 @@ export const pacienteTurnoSchema = z.object({
 
 export const createTurnoSchema = z.object({
   paciente: pacienteTurnoSchema,
+  agendaId: z.string().min(1, "Agenda obligatoria"),
   fechaHoraProgramada: z
     .string()
     .min(1, "Fecha/hora obligatoria")

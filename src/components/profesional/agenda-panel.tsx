@@ -10,9 +10,20 @@ type Turno = {
   estado: TurnoEstado;
   pacienteId?: { nombre: string; apellido: string };
   empresaId?: { nombre: string };
+  agendaId?: { nombre?: string; fecha: string; horaInicio: string; horaFin: string };
   profesionalId?: { nombre: string; apellido: string } | null;
   acciones?: { puedeTomar: boolean; puedeAtender: boolean };
 };
+
+function agendaResumen(agenda?: Turno["agendaId"]) {
+  if (!agenda) return null;
+  const fecha = new Date(agenda.fecha).toLocaleDateString("es-AR", {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone: "America/Argentina/Buenos_Aires",
+  });
+  return `${agenda.nombre || "Agenda"} (${fecha})`;
+}
 
 const estadoLabels: Record<TurnoEstado, string> = {
   pendiente: "Pendiente",
@@ -105,6 +116,7 @@ export function AgendaProfesionalPanel() {
               ? `${turno.pacienteId.nombre} ${turno.pacienteId.apellido}`
               : "—";
             const empresa = turno.empresaId?.nombre ?? "—";
+            const agenda = agendaResumen(turno.agendaId);
             const puedeTomar = turno.acciones?.puedeTomar ?? false;
             const puedeAtender = turno.acciones?.puedeAtender ?? false;
 
@@ -118,6 +130,7 @@ export function AgendaProfesionalPanel() {
                 </p>
                 <p className="mt-1 text-clinical-900">{paciente}</p>
                 <p className="text-sm text-mist-400">{empresa}</p>
+                {agenda && <p className="text-xs text-clinical-700">{agenda}</p>}
                 <p className="mt-2 inline-flex rounded-full bg-paper-50 px-2 py-0.5 text-xs font-medium text-clinical-700">
                   {estadoLabels[turno.estado]}
                 </p>

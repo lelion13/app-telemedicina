@@ -15,6 +15,9 @@ export function canAccessApiPath(rol: Rol, pathname: string): boolean {
   if (pathname.startsWith("/api/events")) {
     return rol === "empresa";
   }
+  if (pathname.startsWith("/api/administrativo")) {
+    return rol === "administrativo";
+  }
   if (pathname.startsWith("/api/admin")) {
     return rol === "admin";
   }

@@ -2,19 +2,25 @@
 
 ## Purpose
 
-Gestionar identidad de usuarios internos (`admin`, `empresa`, `profesional`) mediante NextAuth.js con Credentials Provider, y proteger rutas por rol usando el mecanismo de proxy de Next.js 16.
+Gestionar identidad de usuarios internos (`admin`, `administrativo`, `empresa`, `profesional`) mediante NextAuth.js con Credentials Provider, y proteger rutas por rol usando el mecanismo de proxy de Next.js 16.
 
 ## Requirements
 
 ### Requirement: Login con credenciales
 
-El sistema DEBE permitir login con email y contraseña para usuarios con rol `admin`, `empresa` o `profesional`.
+El sistema DEBE permitir login con email y contraseña para usuarios con rol `admin`, `administrativo`, `empresa` o `profesional`.
 
 #### Scenario: Login exitoso
 
 - GIVEN un usuario activo con credenciales válidas
 - WHEN envía email y contraseña correctos en `/login`
 - THEN el sistema DEBE crear sesión NextAuth y redirigir al dashboard según su rol
+
+#### Scenario: Login exitoso administrativo
+
+- GIVEN un usuario activo con rol `administrativo`
+- WHEN envía credenciales válidas
+- THEN el sistema DEBE crear sesión y redirigir a `/administrativo`
 
 #### Scenario: Credenciales inválidas
 
@@ -30,6 +36,15 @@ El sistema DEBE almacenar contraseñas únicamente como hash bcrypt con salt por
 
 El sistema DEBE proteger rutas autenticadas mediante `proxy.ts`, verificando sesión JWT de NextAuth y rol del usuario.
 
+El sistema DEBE incluir `administrativo` en el mapa de roles y dashboards:
+
+| Rol | Dashboard |
+|-----|-----------|
+| admin | `/admin` |
+| administrativo | `/administrativo` |
+| empresa | `/empresa` |
+| profesional | `/profesional` |
+
 #### Scenario: Empresa accede a ruta de empresa
 
 - GIVEN un usuario autenticado con rol `empresa`
@@ -41,6 +56,22 @@ El sistema DEBE proteger rutas autenticadas mediante `proxy.ts`, verificando ses
 - GIVEN un usuario autenticado con rol `empresa`
 - WHEN navega a `/admin/**`
 - THEN el sistema DEBE denegar el acceso (redirect a login o página 403)
+
+#### Scenario: Bloqueo cruzado
+
+- GIVEN un usuario con rol `empresa`
+- WHEN navega a `/administrativo`
+- THEN el sistema DEBE redirigir a `/403` o login
+
+### Requirement: APIs por prefijo de rol
+
+El sistema DEBE enrutar APIs con prefijo `/api/administrativo` exclusivo para rol `administrativo`, análogo a `/api/empresa` y `/api/profesional`.
+
+#### Scenario: Empresa bloqueada en API administrativo
+
+- GIVEN sesión rol `empresa`
+- WHEN llama `GET /api/administrativo/agendas`
+- THEN el sistema DEBE responder 403
 
 ### Requirement: Aislamiento multi-tenant
 

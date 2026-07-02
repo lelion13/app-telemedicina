@@ -1,24 +1,36 @@
 import { randomUUID } from "crypto";
+import { resolveAgendaForEmpresaSlot } from "@/lib/agenda/resolve";
 import connectDB from "@/lib/db";
 import { sendTurnoInviteEmail } from "@/lib/mail/turno-invite";
 import { notifyTurnoActualizado } from "@/lib/realtime/notify";
 import { buildEmpresaScopedQuery } from "@/lib/security/idor";
-import { isWithinFranja } from "@/lib/turnos/franja";
+import { TurnoValidationError } from "@/lib/turnos/errors";
 import {
   computeTokenWindow,
   createPatientAccessToken,
 } from "@/lib/turnos/patient-token";
 import type { createTurnoSchema } from "@/lib/validations/turnos";
-import { FranjaHoraria, Paciente, Turno } from "@/models";
+import { Paciente, Turno } from "@/models";
 import type { z } from "zod";
+
+export { TurnoValidationError } from "@/lib/turnos/errors";
 
 type CreateTurnoInput = z.infer<typeof createTurnoSchema>;
 
-export class TurnoValidationError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "TurnoValidationError";
+function buildConsultaUrl(accessToken: string): string {
+  const baseUrl = process.env.APP_BASE_URL ?? "http://localhost:3000";
+  return `${baseUrl}/consulta/${encodeURIComponent(accessToken)}`;
+}
+
+function withConsultaUrl<T extends { accessToken?: string }>(turno: T) {
+  if (!turno.accessToken) {
+    return turno;
   }
+
+  return {
+    ...turno,
+    consultaUrl: buildConsultaUrl(turno.accessToken),
+  };
 }
 
 export async function findOrCreatePaciente(
@@ -70,12 +82,11 @@ export async function createTurnoForEmpresa(
     throw new TurnoValidationError("No podés agendar turnos en el pasado");
   }
 
-  const franjas = await FranjaHoraria.find({ activa: true }).lean();
-  if (!isWithinFranja(fechaHoraProgramada, franjas)) {
-    throw new TurnoValidationError(
-      "El horario elegido no está dentro de las franjas disponibles",
-    );
-  }
+  const agenda = await resolveAgendaForEmpresaSlot(
+    empresaId,
+    fechaHoraProgramada,
+    input.agendaId,
+  );
 
   const paciente = await findOrCreatePaciente(empresaId, input.paciente);
   const { tokenExpiraEn } = computeTokenWindow(fechaHoraProgramada);
@@ -83,6 +94,7 @@ export async function createTurnoForEmpresa(
   const turnoDraft = await Turno.create({
     pacienteId: paciente._id,
     empresaId,
+    agendaId: agenda._id,
     fechaHoraProgramada,
     estado: "pendiente",
     accessToken: `pending-${randomUUID()}`,
@@ -97,8 +109,7 @@ export async function createTurnoForEmpresa(
   turnoDraft.accessToken = accessToken;
   await turnoDraft.save();
 
-  const baseUrl = process.env.APP_BASE_URL ?? "http://localhost:3000";
-  const consultaUrl = `${baseUrl}/consulta/${encodeURIComponent(accessToken)}`;
+  const consultaUrl = buildConsultaUrl(accessToken);
 
   const mailSent = await sendTurnoInviteEmail(paciente.email, {
     pacienteNombre: paciente.nombre,
@@ -108,7 +119,7 @@ export async function createTurnoForEmpresa(
 
   notifyTurnoActualizado(turnoDraft);
 
-  return { turno: turnoDraft, mailSent };
+  return { turno: turnoDraft, mailSent, consultaUrl };
 }
 
 export async function listTurnosForEmpresa(
@@ -130,11 +141,14 @@ export async function listTurnosForEmpresa(
     };
   }
 
-  return Turno.find(query)
+  const turnos = await Turno.find(query)
     .populate("pacienteId", "nombre apellido email telefono")
     .populate("profesionalId", "nombre apellido")
+    .populate("agendaId", "nombre fecha horaInicio horaFin duracionTurnoMinutos")
     .sort({ fechaHoraProgramada: -1 })
     .lean();
+
+  return turnos.map((turno) => withConsultaUrl(turno));
 }
 
 export async function cancelTurnoForEmpresa(turnoId: string, empresaId: string) {

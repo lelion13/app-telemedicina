@@ -52,12 +52,12 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { turno, mailSent } = await createTurnoForEmpresa(
+    const { turno, mailSent, consultaUrl } = await createTurnoForEmpresa(
       tenantResult.session.user.empresaId!,
       parsed.data,
     );
 
-    return NextResponse.json({ turno, mailSent }, { status: 201 });
+    return NextResponse.json({ turno, mailSent, consultaUrl }, { status: 201 });
   } catch (error) {
     if (error instanceof TurnoValidationError) {
       return NextResponse.json({ error: error.message }, { status: 400 });

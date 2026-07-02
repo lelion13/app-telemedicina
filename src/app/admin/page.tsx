@@ -15,6 +15,11 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="space-y-8">
+      <p className="rounded-xl bg-paper-50 px-4 py-3 text-sm text-clinical-700 ring-1 ring-paper-100">
+        Panel de configuración y métricas. Para crear agendas y supervisar turnos,
+        usá el rol <strong>administrativo</strong>.
+      </p>
+
       <section className="grid gap-4 sm:grid-cols-3">
         <MetricCard label="Turnos hoy" value={String(metrics.turnosHoy)} />
         <MetricCard

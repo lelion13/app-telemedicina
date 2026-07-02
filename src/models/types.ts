@@ -1,4 +1,4 @@
-export const ROLES = ["admin", "empresa", "profesional"] as const;
+export const ROLES = ["admin", "administrativo", "empresa", "profesional"] as const;
 export type Rol = (typeof ROLES)[number];
 
 export const TURNO_ESTADOS = [

@@ -21,6 +21,7 @@ describe("password helpers", () => {
 describe("authz", () => {
   it("redirige cada rol a su dashboard", () => {
     expect(getDashboardForRole("admin")).toBe("/admin");
+    expect(getDashboardForRole("administrativo")).toBe("/administrativo");
     expect(getDashboardForRole("empresa")).toBe("/empresa");
     expect(getDashboardForRole("profesional")).toBe("/profesional");
   });
@@ -28,7 +29,10 @@ describe("authz", () => {
   it("permite acceso solo a rutas del rol correspondiente", () => {
     expect(canAccessPath("empresa", "/empresa/turnos")).toBe(true);
     expect(canAccessPath("empresa", "/admin")).toBe(false);
-    expect(canAccessPath("admin", "/admin/franjas")).toBe(true);
+    expect(canAccessPath("admin", "/admin/usuarios")).toBe(true);
+    expect(canAccessPath("admin", "/administrativo")).toBe(false);
+    expect(canAccessPath("administrativo", "/administrativo")).toBe(true);
+    expect(canAccessPath("administrativo", "/admin")).toBe(false);
     expect(canAccessPath("profesional", "/empresa")).toBe(false);
   });
 

@@ -8,8 +8,11 @@ context: |
   NextAuth.js (Credentials), LiveKit self-hosted, Nodemailer (SMTP), Redis (LiveKit).
   Proxy: Traefik en VPS (sin Caddy/Nginx interno). Node.js 22 en Docker.
   Idioma: español (Argentina) en UI, mails y documentación.
-  Roles: admin, empresa (tenant), profesional, paciente (sin cuenta, acceso por token).
-  Alcance: MVP implementado (fases 1–10) y desplegado en VPS con warnings en fase 11 (E2E, SMTP, WebRTC smoke pendientes).
+  Roles: admin (usuarios/permisos), administrativo (agendas y supervisión),
+  empresa (turnos de su tenant en agendas asignadas), profesional (atención + evolución),
+  paciente (sin cuenta, token).
+  Entidad central v2: Agenda (creada por administrativo).
+  Change activo: roles-and-agendas (reemplaza modelo MVP de franjas globales admin).
 
 rules:
   proposal:

@@ -93,6 +93,8 @@ describe("IDOR y control de acceso", () => {
     expect(canAccessApiPath("empresa", "/api/profesional/turnos")).toBe(false);
     expect(canAccessApiPath("profesional", "/api/empresa/turnos")).toBe(false);
     expect(canAccessApiPath("admin", "/api/empresa/turnos")).toBe(false);
+    expect(canAccessApiPath("administrativo", "/api/admin/metrics")).toBe(false);
+    expect(canAccessApiPath("admin", "/api/administrativo/agendas")).toBe(false);
   });
 });
 

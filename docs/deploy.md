@@ -127,6 +127,25 @@ Requisitos en `.env.prod`: `ADMIN_PASSWORD` (mín. 12 caracteres), opcionalmente
 
 Login: `https://telemedicina.lionapp.cloud/login`
 
+### Usuario administrativo (opcional)
+
+En `.env.prod` podés definir `ADMINISTRATIVO_EMAIL`, `ADMINISTRATIVO_PASSWORD`, `ADMINISTRATIVO_NOMBRE`, `ADMINISTRATIVO_APELLIDO`. El seed local (`npm run seed`) los crea si están presentes. En VPS, creá el usuario desde el panel **Admin → Usuarios** con rol `administrativo`, o ejecutá el seed dentro del contenedor si lo tenés configurado.
+
+Login administrativo: mismo `/login`, redirige a `/administrativo`.
+
+### Migración v2: franjas → agendas
+
+Tras desplegar la versión con modelo **Agenda** (roles-and-agendas v2), ejecutá **una vez** la migración de datos antes de que las empresas agenden turnos:
+
+```bash
+cd /docker/app-telemedicina
+docker compose --env-file .env.prod -f docker-compose.prod.yml exec app npm run migrate-agendas
+```
+
+La migración convierte franjas horarias legacy en agendas por día y asigna `agendaId` a turnos existentes. Sin agendas activas, el alta de turnos falla con *"El horario elegido no está dentro de una agenda disponible"*.
+
+Variables opcionales: `AGENDA_DEFAULT_SLOT_MIN` (default 15), `AGENDA_MIGRATION_DAYS` (default 90).
+
 ## Desarrollo local (build en máquina)
 
 ```bash
@@ -232,6 +251,21 @@ IMAGE_TAG=sha-<commit-anterior>
 - DNS `livekit.telemedicina.lionapp.cloud` resuelve a esa IP
 - UDP 50000-50100 abierto en firewall
 - `LIVEKIT_URL` usa `wss://`
+
+### Empresa no puede agendar turnos
+
+- Verificá que existan agendas activas (`/administrativo/agendas` o migración ejecutada).
+- La empresa debe estar en `empresaIds` de la agenda o la agenda debe ser pública (`empresaIds` vacío).
+
+## Smoke test manual por rol (post-deploy v2)
+
+| Rol | URL | Verificar |
+|-----|-----|-----------|
+| admin | `/admin` | Métricas, CRUD usuarios con rol administrativo, sin UI de franjas |
+| administrativo | `/administrativo` | Crear agenda, ver slots, monitor de turnos |
+| empresa | `/empresa` | Listar agendas, crear turno en slot libre, ver `consultaUrl` |
+| profesional | `/profesional` | Tomar turno de agenda activa, evolución + GPS al cerrar |
+| paciente | `/consulta/[token]` | GPS, ingreso a sala LiveKit |
 
 ## Variables obligatorias
 

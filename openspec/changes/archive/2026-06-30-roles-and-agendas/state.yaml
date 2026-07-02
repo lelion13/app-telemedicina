@@ -1,0 +1,25 @@
+change: roles-and-agendas
+status: archived
+phase: complete
+created: 2026-06-30
+archived: 2026-06-30
+description: Redefinición de 5 roles y modelo Agenda creada por administrativo
+supersedes: polish-admin-empresa-ux
+parent_archive: openspec/changes/archive/2026-06-30-bootstrap-mvp
+roles_target:
+  - admin
+  - administrativo
+  - empresa
+  - profesional
+  - paciente
+artifacts:
+  - proposal.md
+  - design.md
+  - gap-analysis.md
+  - specs/roles/spec.md
+  - specs/agenda/spec.md
+  - specs/auth/spec.md
+  - specs/admin/spec.md
+  - specs/turnos/spec.md
+  - specs/profesional/spec.md
+  - tasks.md

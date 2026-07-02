@@ -2,13 +2,23 @@
 
 ## Purpose
 
-Gestionar el ciclo de vida completo de un turno de teleasistencia desde el agendamiento hasta su cierre.
+Gestionar el ciclo de vida completo de un turno de teleasistencia desde el agendamiento hasta su cierre, ligado a una agenda operativa.
 
 ## Requirements
 
+### Requirement: Turno ligado a agenda
+
+Todo turno DEBE incluir `agendaId` referenciando una agenda activa en la que la empresa esté asignada.
+
+#### Scenario: Crear turno con agenda
+
+- GIVEN una empresa autenticada y una agenda asignada
+- WHEN crea un turno con `agendaId` y horario válido
+- THEN el sistema DEBE persistir el turno en estado `pendiente`
+
 ### Requirement: Creación de turno
 
-Los roles `empresa` y `admin` DEBEN poder crear turnos especificando datos obligatorios del paciente (nombre, apellido, teléfono, email, domicilio) y fecha/hora. El campo `descripcion` del paciente PUEDE ser opcional; todos los demás campos de paciente son obligatorios.
+Solo el rol `empresa` DEBE crear turnos. La creación DEBE validar `agendaId`, datos obligatorios del paciente (nombre, apellido, teléfono, email, domicilio) y slot de la agenda. El campo `descripcion` del paciente PUEDE ser opcional.
 
 #### Scenario: Paciente nuevo
 
@@ -56,14 +66,14 @@ Al crear un turno, el sistema DEBE generar un `accessToken` único (JWT firmado)
 
 Al crear un turno, el sistema DEBE enviar mail al paciente con fecha/hora, link `/consulta/[token]` e instrucciones de geolocalización.
 
-### Requirement: Notas del profesional
+### Requirement: Evolución del profesional
 
-El profesional PUEDE agregar `notasProfesional` al cerrar un turno. Las notas NO DEBEN ser visibles al paciente.
+Al cerrar un turno `finalizado`, el profesional DEBE registrar evolución (texto clínico) vinculada al último `RegistroGPS` del turno si existe. Las notas NO DEBEN ser visibles al paciente.
 
 ### Requirement: Vista empresa filtrada
 
-Un usuario `empresa` SOLO DEBE ver y gestionar turnos donde `empresaId` coincide con su empresa.
+Un usuario `empresa` SOLO DEBE ver y gestionar turnos donde `empresaId` coincide con su empresa, mostrando estado, paciente, profesional y agenda.
 
-### Requirement: Vista profesional global
+### Requirement: Vista profesional por agendas activas
 
-Un usuario `profesional` DEBE ver turnos de todas las empresas en su agenda.
+Un usuario `profesional` DEBE ver turnos pertenecientes a agendas activas creadas por administrativo.

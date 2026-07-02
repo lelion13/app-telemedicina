@@ -11,6 +11,11 @@ type TurnoDetalle = {
   _id: string;
   estado: TurnoEstado;
   notasProfesional?: string;
+  evolucion?: {
+    texto: string;
+    registradoEn?: string;
+    gpsRegistroId?: string;
+  };
   pacienteId?: {
     nombre: string;
     apellido: string;
@@ -20,24 +25,43 @@ type TurnoDetalle = {
     descripcion?: string;
   };
   empresaId?: { nombre: string };
+  agendaId?: {
+    nombre?: string;
+    fecha: string;
+    horaInicio: string;
+    horaFin: string;
+  };
   fechaHoraProgramada: string;
 };
 
 type GpsData = {
+  id: string;
   origen: GpsOrigen;
   lat?: number;
   lng?: number;
   accuracy?: number;
+  timestamp?: string;
 } | null;
+
+function agendaLabel(agenda?: TurnoDetalle["agendaId"]) {
+  if (!agenda) return null;
+  const fecha = new Date(agenda.fecha).toLocaleDateString("es-AR", {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone: "America/Argentina/Buenos_Aires",
+  });
+  return `${agenda.nombre || "Agenda"} · ${fecha} · ${agenda.horaInicio}–${agenda.horaFin}`;
+}
 
 export function ConsultaProfesionalPanel({ turnoId }: { turnoId: string }) {
   const router = useRouter();
   const [turno, setTurno] = useState<TurnoDetalle | null>(null);
   const [gps, setGps] = useState<GpsData>(null);
-  const [notas, setNotas] = useState("");
+  const [evolucion, setEvolucion] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [videoEnabled, setVideoEnabled] = useState(false);
+  const [savingEvolucion, setSavingEvolucion] = useState(false);
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/profesional/turnos/${turnoId}`);
@@ -49,13 +73,15 @@ export function ConsultaProfesionalPanel({ turnoId }: { turnoId: string }) {
     const data = await res.json();
     setTurno(data.turno);
     setGps(data.gps ?? null);
-    setNotas(data.turno?.notasProfesional ?? "");
+    setEvolucion(
+      data.turno?.evolucion?.texto ?? data.turno?.notasProfesional ?? "",
+    );
     setVideoEnabled(data.turno?.estado === "en_curso");
     setLoading(false);
   }, [turnoId]);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   async function iniciarConsulta() {
@@ -70,11 +96,42 @@ export function ConsultaProfesionalPanel({ turnoId }: { turnoId: string }) {
     }
   }
 
-  async function cerrarConsulta(estado: "finalizado" | "ausente") {
+  async function guardarEvolucion() {
+    if (!evolucion.trim()) {
+      setError("Escribí la evolución antes de guardar");
+      return;
+    }
+
+    setSavingEvolucion(true);
+    setError(null);
+
     const res = await fetch(`/api/profesional/turnos/${turnoId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ estado, notasProfesional: notas }),
+      body: JSON.stringify({ accion: "evolucion", evolucion }),
+    });
+
+    setSavingEvolucion(false);
+
+    if (!res.ok) {
+      const data = await res.json();
+      setError(data.error ?? "No se pudo guardar la evolución");
+      return;
+    }
+
+    await load();
+  }
+
+  async function cerrarConsulta(estado: "finalizado" | "ausente") {
+    if (estado === "finalizado" && !evolucion.trim()) {
+      setError("La evolución es obligatoria para finalizar la consulta");
+      return;
+    }
+
+    const res = await fetch(`/api/profesional/turnos/${turnoId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ estado, evolucion }),
     });
 
     if (res.ok) {
@@ -84,17 +141,21 @@ export function ConsultaProfesionalPanel({ turnoId }: { turnoId: string }) {
     }
 
     const data = await res.json();
-    setError(data.error ?? "No se pudo cerrar la consulta");
+    setError(
+      typeof data.error === "string"
+        ? data.error
+        : "No se pudo cerrar la consulta",
+    );
   }
 
   if (loading) {
     return <p className="text-mist-400">Cargando consulta…</p>;
   }
 
-  if (error || !turno) {
+  if (error && !turno) {
     return (
       <div className="space-y-4">
-        <p className="text-signal-alert">{error ?? "Turno no disponible"}</p>
+        <p className="text-signal-alert">{error}</p>
         <Link href="/profesional" className="text-clinical-700 hover:underline">
           Volver a la agenda
         </Link>
@@ -102,14 +163,20 @@ export function ConsultaProfesionalPanel({ turnoId }: { turnoId: string }) {
     );
   }
 
+  if (!turno) {
+    return null;
+  }
+
   const paciente = turno.pacienteId;
   const fecha = new Date(turno.fechaHoraProgramada).toLocaleString("es-AR", {
     dateStyle: "full",
     timeStyle: "short",
   });
+  const agenda = agendaLabel(turno.agendaId);
+  const evolucionGuardada = Boolean(turno.evolucion?.texto);
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+    <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
       <section className="min-h-[320px]">
         <ProfesionalVideoRoom turnoId={turnoId} enabled={videoEnabled} />
         {turno.estado !== "en_curso" &&
@@ -135,6 +202,7 @@ export function ConsultaProfesionalPanel({ turnoId }: { turnoId: string }) {
           </h2>
           <p className="text-sm text-mist-400">{fecha}</p>
           <p className="text-sm text-mist-400">{turno.empresaId?.nombre}</p>
+          {agenda && <p className="text-sm text-clinical-700">{agenda}</p>}
         </div>
 
         {paciente && (
@@ -162,35 +230,62 @@ export function ConsultaProfesionalPanel({ turnoId }: { turnoId: string }) {
 
         <div className="rounded-lg bg-paper-50 p-3">
           <p className="mb-2 text-sm font-medium text-clinical-900">
-            Verificación GPS
+            Ubicación del paciente
           </p>
           {gps ? (
-            <GpsPanel
-              origen={gps.origen}
-              lat={gps.lat}
-              lng={gps.lng}
-              accuracy={gps.accuracy}
-            />
+            <div className="space-y-2">
+              <GpsPanel
+                origen={gps.origen}
+                lat={gps.lat}
+                lng={gps.lng}
+                accuracy={gps.accuracy}
+              />
+              <p className="text-xs text-mist-400">
+                Registro GPS vinculado a la evolución al guardar o finalizar.
+              </p>
+            </div>
           ) : (
             <p className="text-sm text-mist-400">
-              El paciente aún no completó el flujo de ubicación.
+              El paciente aún no compartió ubicación.
             </p>
           )}
         </div>
 
         <label className="block space-y-1 text-sm">
-          <span className="font-medium text-clinical-900">Notas</span>
+          <span className="font-medium text-clinical-900">Evolución clínica</span>
           <textarea
-            value={notas}
-            onChange={(e) => setNotas(e.target.value)}
-            rows={3}
-            className="w-full rounded-lg border border-paper-100 bg-paper-50 px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-clinical-700"
-            placeholder="Observaciones de la consulta"
+            value={evolucion}
+            onChange={(e) => setEvolucion(e.target.value)}
+            rows={4}
+            disabled={turno.estado === "finalizado" || turno.estado === "ausente"}
+            className="w-full rounded-lg border border-paper-100 bg-paper-50 px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-clinical-700 disabled:opacity-70"
+            placeholder="Registrá la evolución de la consulta"
           />
         </label>
 
+        {evolucionGuardada && (
+          <p className="text-xs text-signal-verified">
+            Evolución guardada
+            {turno.evolucion?.gpsRegistroId ? " con ubicación vinculada" : ""}.
+          </p>
+        )}
+
+        {error && (
+          <p role="alert" className="text-sm text-signal-alert">
+            {error}
+          </p>
+        )}
+
         {turno.estado === "en_curso" && (
           <div className="flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={guardarEvolucion}
+              disabled={savingEvolucion}
+              className="rounded-lg border border-clinical-700 px-4 py-2 text-sm font-medium text-clinical-700 hover:bg-paper-50 disabled:opacity-60"
+            >
+              {savingEvolucion ? "Guardando…" : "Guardar evolución"}
+            </button>
             <button
               type="button"
               onClick={() => cerrarConsulta("finalizado")}

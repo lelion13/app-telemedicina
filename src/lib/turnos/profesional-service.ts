@@ -1,7 +1,9 @@
 import connectDB from "@/lib/db";
 import { logConsultaEvent } from "@/lib/consulta/audit";
+import { getActiveAgendaIds } from "@/lib/agenda/active";
 import { notifyTurnoActualizado } from "@/lib/realtime/notify";
-import { TurnoValidationError } from "@/lib/turnos/service";
+import { TurnoValidationError } from "@/lib/turnos/errors";
+import { buildEvolucionPayload } from "@/lib/turnos/evolucion";
 import {
   canCloseConsulta,
   canStartConsulta,
@@ -9,7 +11,7 @@ import {
   nextEstadoAfterStart,
   nextEstadoAfterTake,
 } from "@/lib/turnos/state";
-import { Turno } from "@/models";
+import { Agenda, RegistroGPS, Turno } from "@/models";
 import type { TurnoEstado } from "@/models/types";
 import { Types } from "mongoose";
 
@@ -25,6 +27,17 @@ function endOfToday(): Date {
   return d;
 }
 
+async function assertTurnoOnActiveAgenda(turno: { agendaId?: Types.ObjectId | null }) {
+  if (!turno.agendaId) {
+    throw new TurnoValidationError("El turno no pertenece a una agenda activa");
+  }
+
+  const agenda = await Agenda.findById(turno.agendaId).select("activa").lean();
+  if (!agenda?.activa) {
+    throw new TurnoValidationError("La agenda de este turno no está activa");
+  }
+}
+
 export async function listTurnosForProfesional(filters: {
   estado?: TurnoEstado;
   empresaId?: string;
@@ -34,7 +47,17 @@ export async function listTurnosForProfesional(filters: {
 }) {
   await connectDB();
 
-  const query: Record<string, unknown> = {};
+  const activeAgendaIds = await getActiveAgendaIds(
+    filters.soloHoy ? startOfToday() : new Date(),
+  );
+
+  if (activeAgendaIds.length === 0) {
+    return [];
+  }
+
+  const query: Record<string, unknown> = {
+    agendaId: { $in: activeAgendaIds },
+  };
 
   if (filters.estado) {
     query.estado = filters.estado;
@@ -60,6 +83,7 @@ export async function listTurnosForProfesional(filters: {
     .populate("pacienteId", "nombre apellido email telefono domicilio descripcion")
     .populate("profesionalId", "nombre apellido")
     .populate("empresaId", "nombre")
+    .populate("agendaId", "nombre fecha horaInicio horaFin duracionTurnoMinutos activa")
     .sort({ fechaHoraProgramada: 1 })
     .lean();
 }
@@ -75,6 +99,8 @@ export async function takeTurno(turnoId: string, profesionalId: string) {
   if (!canTakeTurno(turno)) {
     throw new TurnoValidationError("Este turno no está disponible para tomar");
   }
+
+  await assertTurnoOnActiveAgenda(turno);
 
   turno.profesionalId = new Types.ObjectId(profesionalId);
   turno.estado = nextEstadoAfterTake();
@@ -96,6 +122,8 @@ export async function startTurno(turnoId: string, profesionalId: string) {
     throw new TurnoValidationError("No podés iniciar esta consulta");
   }
 
+  await assertTurnoOnActiveAgenda(turno);
+
   turno.estado = nextEstadoAfterStart();
   await turno.save();
   await logConsultaEvent(turnoId, "llamada_iniciada", { rol: "profesional" });
@@ -104,11 +132,45 @@ export async function startTurno(turnoId: string, profesionalId: string) {
   return turno;
 }
 
+export async function saveEvolucionForTurno(
+  turnoId: string,
+  profesionalId: string,
+  evolucionTexto: string,
+) {
+  await connectDB();
+
+  const turno = await Turno.findById(turnoId);
+  if (!turno) {
+    return null;
+  }
+
+  if (
+    turno.profesionalId?.toString() !== profesionalId ||
+    turno.estado !== "en_curso"
+  ) {
+    throw new TurnoValidationError("No podés registrar evolución en esta consulta");
+  }
+
+  const gpsRegistro = await RegistroGPS.findOne({ turnoId })
+    .sort({ timestamp: -1 })
+    .select("_id")
+    .lean();
+
+  turno.evolucion = buildEvolucionPayload({
+    texto: evolucionTexto,
+    gpsRegistroId: gpsRegistro?._id,
+  });
+  turno.notasProfesional = evolucionTexto.trim();
+  await turno.save();
+
+  return turno;
+}
+
 export async function closeTurno(
   turnoId: string,
   profesionalId: string,
   estado: "finalizado" | "ausente",
-  notasProfesional?: string,
+  evolucionTexto?: string,
 ) {
   await connectDB();
 
@@ -122,9 +184,27 @@ export async function closeTurno(
   }
 
   turno.estado = estado;
-  if (notasProfesional?.trim()) {
-    turno.notasProfesional = notasProfesional.trim();
+
+  if (estado === "finalizado") {
+    const texto = evolucionTexto?.trim() ?? turno.evolucion?.texto?.trim();
+    if (!texto) {
+      throw new TurnoValidationError(
+        "La evolución es obligatoria al finalizar la consulta",
+      );
+    }
+
+    const gpsRegistro = await RegistroGPS.findOne({ turnoId })
+      .sort({ timestamp: -1 })
+      .select("_id")
+      .lean();
+
+    turno.evolucion = buildEvolucionPayload({
+      texto,
+      gpsRegistroId: gpsRegistro?._id,
+    });
+    turno.notasProfesional = texto;
   }
+
   await turno.save();
   await logConsultaEvent(turnoId, "llamada_finalizada", { estado });
   notifyTurnoActualizado(turno);
@@ -138,7 +218,8 @@ export async function getTurnoForProfesional(turnoId: string, profesionalId: str
   const turno = await Turno.findById(turnoId)
     .populate("pacienteId")
     .populate("empresaId", "nombre")
-    .populate("profesionalId", "nombre apellido");
+    .populate("profesionalId", "nombre apellido")
+    .populate("agendaId", "nombre fecha horaInicio horaFin");
 
   if (!turno) {
     return null;

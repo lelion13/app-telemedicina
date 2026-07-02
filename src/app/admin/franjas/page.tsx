@@ -1,5 +1,5 @@
-import { FranjasPanel } from "@/components/admin/franjas-panel";
+import { redirect } from "next/navigation";
 
 export default function AdminFranjasPage() {
-  return <FranjasPanel />;
+  redirect("/admin/usuarios");
 }

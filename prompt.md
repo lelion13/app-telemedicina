@@ -14,36 +14,43 @@ el vps ya cuenta con un treafik para enrutar el link que va a ser telemedicina.l
 
 ---
 
-## ROLES Y PERMISOS
+## ROLES Y PERMISOS (v2 — cinco actores)
 
-### 1. Rol `empresa` (usuario de empresa cliente)
+### 1. Rol `admin` (configuración del sistema)
 
-- Tiene cuenta con email/password, asociado a una `Empresa` (tenant).
-- Puede crear, editar y cancelar turnos **solo para pacientes de su propia empresa**.
-- Puede ver el estado de todos los turnos agendados por su empresa (pendiente, confirmado, en curso, finalizado, ausente, cancelado), pero **no** de otras empresas.
-- No participa en la videollamada, solo agenda y monitorea estado.
+- Crea/edita/desactiva **empresas** y **usuarios** (roles `admin`, `administrativo`, `empresa`, `profesional`).
+- Dashboard con **métricas agregadas** (turnos por estado, empresa, profesional, ausentismo).
+- **No** opera el día a día: no crea agendas ni agenda turnos.
+- Puede auditar GPS y logs de consulta a nivel global.
 
-### 2. Rol `profesional` (usuario de teleasistencia / médico / operador)
+### 2. Rol `administrativo` (operación diaria)
 
-- Tiene cuenta con email/password.
-- Ve una agenda/cola de turnos **de todas las empresas**, no filtrada por tenant.
-- Puede tomar/asignarse cualquier turno disponible (sin importar qué empresa lo agendó) y conducir la videollamada.
-- Al iniciar la atención, el sistema dispara la captura de GPS del lado del paciente (ver sección de flujo de consulta).
-- Puede marcar el resultado del turno (atendido, ausente, reprogramado) y dejar notas.
+- Usuario autenticado con dashboard en `/administrativo`.
+- **Todos** los usuarios administrativos tienen los **mismos permisos fijos** (sin granularidad por persona en MVP).
+- Crea/edita/desactiva **Agendas** (día + horario + duración fija de turno + empresas opcionales).
+- Supervisa **todos** los turnos de **todas** las agendas (cross-tenant).
+- No atiende consultas ni participa en videollamadas.
 
-### 3. Rol `admin` (superusuario)
+### 3. Rol `empresa` (usuario de empresa cliente)
 
-- Ve absolutamente todo: todas las empresas, todos los profesionales, toda la agenda, todos los pacientes, logs de GPS, históricos.
-- Puede crear/editar/desactivar usuarios de cualquier rol y empresas.
-- Acceso a un dashboard con métricas generales (turnos por estado, por empresa, por profesional, tasa de ausentismo, etc).
-- crea las agendas para que los usuarios empresa y profesional puedan usarlos.
+- Cuenta con email/password, asociado a una `Empresa` (tenant).
+- Lista agendas donde `empresaIds` está vacío (públicas) o incluye su `empresaId`.
+- Crea turnos **solo** eligiendo agenda + slot libre dentro de esa agenda.
+- Ve y cancela turnos **solo de su empresa**; no participa en la videollamada.
 
-### 4. "Paciente" (sin cuenta, acceso por token)
+### 4. Rol `profesional` (teleasistencia / operador)
+
+- Cuenta con email/password.
+- Ve turnos de **agendas activas** creadas por administrativo (contexto de agenda, no cola global ciega).
+- Toma turnos, conduce videollamada LiveKit, registra **evolución** (texto libre) vinculada al último `RegistroGPS` del turno.
+- Marca resultado (`finalizado`, `ausente`, etc.).
+
+### 5. "Paciente" (sin cuenta, acceso por token)
 
 - No es un usuario del sistema con login.
-- Recibe un mail con un link único y con expiración (ej: válido desde 15 minutos antes del turno hasta X tiempo después).
-- Al entrar al link: pantalla simple que pide permiso de geolocalización, muestra los datos del turno (fecha/hora, profesional si ya está asignado) y un botón para ingresar a la sala de videollamada.
-- Si rechaza el permiso de geolocalización, igual puede ingresar a la consulta, pero el sistema debe registrar explícitamente "ubicación no verificada" — esto debe quedar visible para el profesional y el admin.
+- Recibe mail con link único (`/consulta/[token]`) con ventana temporal.
+- Pantalla pública: permiso GPS, datos del turno, ingreso a sala LiveKit.
+- Si rechaza GPS, puede ingresar igual; queda `origen: no_verificado` visible para profesional y administrativo.
 
 ---
 
@@ -57,7 +64,13 @@ Generá schemas para, como mínimo:
 
 ### `Usuario`
 
-- nombre, apellido, email (único), passwordHash, rol (`empresa` | `profesional` | `admin`), empresaId (solo si rol = empresa), activo (boolean), createdAt
+- nombre, apellido, email (único), passwordHash, rol (`admin` | `administrativo` | `empresa` | `profesional`), empresaId (solo si rol = empresa), activo (boolean), createdAt
+
+### `Agenda` (unidad operativa de disponibilidad)
+
+- fecha (día calendario), horaInicio, horaFin, duracionTurnoMinutos (slots calculados en runtime)
+- empresaIds (array opcional; vacío = cualquier empresa activa puede agendar)
+- creadoPorId (ref Usuario administrativo), activa (boolean)
 
 ### `Paciente`
 
@@ -66,13 +79,15 @@ Generá schemas para, como mínimo:
 ### `Turno`
 
 - pacienteId (ref Paciente)
-- empresaId (la empresa que agendó el turno — se mantiene aunque después lo atienda un profesional de "afuera")
+- empresaId (empresa que agendó)
+- **agendaId** (ref Agenda, obligatorio)
 - profesionalId (ref Usuario, nullable hasta que alguien lo tome)
-- fechaHoraProgramada (Date)
+- fechaHoraProgramada (Date, debe coincidir con un slot de la agenda)
 - estado: `pendiente` | `confirmado` | `en_curso` | `finalizado` | `ausente` | `cancelado`
-- accessToken (string único, para el link del paciente) + tokenExpiraEn (Date)
-- salaVideoId (id de la room de LiveKit, generado al crear el turno o al iniciar)
-- notasProfesional (string, opcional)
+- accessToken + tokenExpiraEn (link paciente)
+- salaVideoId (LiveKit)
+- **evolucion**: { texto, registradoEn, gpsRegistroId } (registro clínico al cerrar)
+- notasProfesional (string, opcional; legado/compat)
 - createdAt, updatedAt
 
 ### `RegistroGPS`
@@ -91,11 +106,12 @@ Generá schemas para, como mínimo:
 
 ## FLUJO DE AGENDAMIENTO DE TURNO
 
-1. Usuario `empresa` o `admin` completa formulario de nuevo turno con:
+1. El **administrativo** crea una **Agenda** (día, horario, duración de slot, empresas opcionales).
+2. Usuario **empresa** completa formulario de nuevo turno con:
   - Datos del paciente: **nombre, apellido, teléfono, mail, domicilio (todos obligatorios)** y **descripción (único campo opcional)**.
   - Si el paciente ya existe (buscar por mail o teléfono), reutilizar el registro; si no, crearlo.
-  - Fecha y hora del turno.
-2. Al guardar el turno:
+  - **Agenda** visible para su tenant y **slot libre** (chip de horario).
+3. Al guardar el turno:
   - Se genera un `accessToken` único (JWT o UUID + hash en DB) con expiración acorde al horario del turno.
   - Se dispara automáticamente un mail al paciente (Nodemailer) con:
     - Fecha y hora del turno.
@@ -113,20 +129,21 @@ Generá schemas para, como mínimo:
   - Se capturan lat/lng/accuracy y se guarda como `RegistroGPS` asociado al turno, vía POST a una API route.
   - Si la precisión (`accuracy`) es mayor a un umbral configurable (ej. 1000m) o el usuario rechazó el permiso, marcar `origen: 'no_verificado'` y hacer fallback a geolocalización por IP en el backend, dejando registrado igual el intento.
   - Una vez capturado (o rechazado) el GPS, se habilita el botón "Ingresar a la consulta", que conecta a la sala de LiveKit.
-2. **Profesional**: desde su agenda, ve los turnos del día (de todas las empresas), filtra por estado/hora, y al llegar el momento entra a la sala correspondiente. Puede ver en pantalla, junto al video, los datos del paciente y el estado de la verificación GPS (coordenadas, precisión, mapa simple si querés agregarlo con Leaflet/OpenStreetMap).
-3. Al finalizar, el profesional marca el turno como `finalizado` o `ausente` y puede dejar notas. El estado se refleja en tiempo real (o casi) en la vista de la empresa que agendó el turno.
+2. **Profesional**: ve turnos de agendas activas, toma el turno y entra a la sala. Panel con datos del paciente, estado GPS y campo de **evolución** clínica.
+3. Al finalizar, el profesional guarda evolución (obligatoria para `finalizado`), vincula GPS si existe, y marca `finalizado` o `ausente`. El estado se refleja en tiempo real en la vista de la empresa.
 
 ---
 
 ## PANTALLAS A IMPLEMENTAR
 
-1. **Login** (empresa / profesional / admin) — paciente no tiene login.
-2. **Dashboard empresa**: listado de turnos propios con filtros por estado/fecha, botón "Nuevo turno".
-3. **Formulario de nuevo turno** (con los campos de paciente especificados).
-4. **Dashboard profesional**: agenda global de turnos (todas las empresas), con botón "Tomar/Atender turno" que lleva a la sala de videollamada.
-5. **Sala de videollamada** (vista profesional y vista paciente, son distintas): integración LiveKit, controles básicos (mute, cámara, colgar), panel lateral con datos del paciente y estado del GPS.
-6. **Dashboard admin**: vista global de empresas, usuarios, turnos, métricas básicas.
-7. **Pantalla pública del paciente** (`/consulta/[token]`): solicitud de permiso GPS + sala de espera + ingreso a videollamada.
+1. **Login** (admin / administrativo / empresa / profesional) — paciente no tiene login.
+2. **Dashboard administrativo** (`/administrativo`): CRUD agendas + monitor de turnos cross-tenant.
+3. **Dashboard empresa**: turnos propios, botón "Nuevo turno" con selector de agenda y slots.
+4. **Formulario de nuevo turno** (paciente + agenda + slot).
+5. **Dashboard profesional**: turnos por agendas activas, consulta con evolución + GPS.
+6. **Sala de videollamada** (profesional y paciente): LiveKit + panel lateral paciente/GPS.
+7. **Dashboard admin**: empresas, usuarios (incl. administrativo), métricas — sin franjas ni agendas operativas.
+8. **Pantalla pública del paciente** (`/consulta/[token]`): GPS + videollamada.
 
 ---
 

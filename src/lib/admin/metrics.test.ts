@@ -23,5 +23,9 @@ describe("admin metrics", () => {
       true,
     );
     expect(canAccessApiPath("empresa", "/api/profesional/turnos")).toBe(false);
+    expect(canAccessApiPath("administrativo", "/api/administrativo/agendas")).toBe(
+      true,
+    );
+    expect(canAccessApiPath("admin", "/api/administrativo/agendas")).toBe(false);
   });
 });

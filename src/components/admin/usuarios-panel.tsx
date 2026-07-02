@@ -15,6 +15,13 @@ type Usuario = {
   empresaId?: { _id: string; nombre: string } | string;
 };
 
+const ROL_LABELS: Record<Rol, string> = {
+  admin: "Admin",
+  administrativo: "Administrativo",
+  empresa: "Empresa",
+  profesional: "Profesional",
+};
+
 const emptyForm = {
   nombre: "",
   apellido: "",
@@ -130,7 +137,7 @@ export function UsuariosPanel() {
                   {usuario.nombre} {usuario.apellido}
                 </td>
                 <td className="px-4 py-3 font-data text-mist-400">{usuario.email}</td>
-                <td className="px-4 py-3 capitalize text-clinical-700">{usuario.rol}</td>
+                <td className="px-4 py-3 text-clinical-700">{ROL_LABELS[usuario.rol]}</td>
                 <td className="px-4 py-3">
                   <span
                     className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
@@ -183,10 +190,16 @@ export function UsuariosPanel() {
             className="h-10 w-full rounded-lg border border-paper-100 bg-paper-50 px-3 outline-none focus-visible:ring-2 focus-visible:ring-clinical-700"
           >
             <option value="admin">Admin</option>
+            <option value="administrativo">Administrativo</option>
             <option value="empresa">Empresa</option>
             <option value="profesional">Profesional</option>
           </select>
         </label>
+        {form.rol === "administrativo" && (
+          <p className="text-xs text-mist-400">
+            El administrativo crea agendas y ve todos los turnos del sistema.
+          </p>
+        )}
         {form.rol === "empresa" && (
           <label className="block space-y-1 text-sm">
             <span className="font-medium text-clinical-900">Empresa</span>

@@ -1,47 +1,87 @@
-# Agenda — Franjas Horarias Globales
+# Agenda — Disponibilidad operativa por día
 
 ## Purpose
 
-Definir ventanas de disponibilidad globales que restringen cuándo se pueden agendar turnos en el sistema.
+Definir ventanas de disponibilidad creadas por el rol `administrativo`, con slots de duración fija, que restringen cuándo y cómo las empresas pueden agendar turnos.
 
 ## Requirements
 
-### Requirement: Admin gestiona franjas globales
+### Requirement: Agenda por día con duración fija de turno
 
-El sistema DEBE permitir al rol `admin` crear, editar y desactivar franjas horarias globales con: día de la semana, hora de inicio, hora de fin, y estado activo.
+El rol `administrativo` DEBE poder crear, editar y desactivar agendas con: **fecha** (día), **horaInicio**, **horaFin**, **duracionTurnoMinutos** (igual para todos los turnos de esa agenda), **empresaIds** opcional y estado activo.
 
-#### Scenario: Crear franja válida
+Los slots disponibles DEBEN calcularse dividiendo el horario en intervalos de `duracionTurnoMinutos`.
 
-- GIVEN un admin autenticado
-- WHEN crea una franja lunes 09:00–13:00 activa
-- THEN el sistema DEBE persistir la franja y hacerla disponible para agendamiento
+#### Scenario: Crear agenda con slots automáticos
 
-#### Scenario: Franja con hora fin anterior a inicio
+- GIVEN un administrativo autenticado
+- WHEN crea una agenda para el 2026-07-15 de 09:00 a 12:00 con duración 15 minutos
+- THEN el sistema DEBE ofrecer slots 09:00, 09:15, 09:30 … 11:45
 
-- GIVEN un admin autenticado
-- WHEN crea una franja con horaFin ≤ horaInicio
-- THEN el sistema DEBE rechazar la operación con error de validación
+#### Scenario: Crear agenda restringida a empresas
 
-### Requirement: Solo admin modifica franjas
+- GIVEN un administrativo y empresas A y B
+- WHEN crea una agenda asignando solo empresa A
+- THEN solo usuarios de empresa A DEBEN poder agendar en esa agenda
 
-Los roles `empresa` y `profesional` NO DEBEN poder crear ni modificar franjas horarias.
+#### Scenario: Agenda pública (sin empresas)
+
+- GIVEN un administrativo que crea agenda sin `empresaIds`
+- WHEN cualquier empresa activa lista agendas
+- THEN esa agenda DEBE aparecer y cualquier empresa DEBE poder crear turnos en ella
+
+### Requirement: Supervisión cross-tenant de agenda
+
+Cualquier usuario `administrativo` DEBE ver todos los turnos de **todas** las agendas, sin importar quién la creó, qué empresa agendó ni qué profesional atendió.
+
+#### Scenario: Vista global de agenda
+
+- GIVEN turnos de distintas empresas en la misma agenda
+- WHEN un administrativo abre el monitor de esa agenda
+- THEN el sistema DEBE listar todos los turnos con estado, empresa, profesional y paciente
+
+### Requirement: Empresa en agendas visibles
+
+El rol `empresa` DEBE poder crear turnos únicamente en agendas donde `(empresaIds vacío OR su empresaId ∈ empresaIds)`, la agenda esté activa y el slot elegido esté libre.
+
+#### Scenario: Turno en agenda restringida a otra empresa
+
+- GIVEN una agenda con `empresaIds` que no incluye la empresa del usuario
+- WHEN la empresa intenta crear un turno en esa agenda
+- THEN el sistema DEBE rechazar con error de autorización o validación
+
+#### Scenario: Turno fuera de slot válido
+
+- GIVEN una agenda 09:00–12:00 con duración 15 min
+- WHEN la empresa agenda a las 10:07
+- THEN el sistema DEBE rechazar indicando horario no disponible
+
+#### Scenario: Slot ya ocupado
+
+- GIVEN el slot 10:00 ya tiene un turno
+- WHEN otra empresa intenta agendar el mismo slot en la misma agenda
+- THEN el sistema DEBE rechazar indicando slot no disponible
+
+### Requirement: Solo administrativo modifica agendas
+
+Los roles `empresa`, `profesional` y `admin` NO DEBEN crear ni modificar agendas operativas. Solo `administrativo` gestiona agendas.
 
 ### Requirement: Validación al agendar
 
-El sistema DEBE rechazar turnos cuya `fechaHoraProgramada` no caiga dentro de al menos una franja global activa para ese día y hora.
+El sistema DEBE rechazar turnos cuya `fechaHoraProgramada` no coincida con un **slot libre** de la agenda seleccionada y la empresa DEBE tener visibilidad sobre esa agenda.
 
-#### Scenario: Turno dentro de franja
+#### Scenario: Turno dentro de slot libre
 
-- GIVEN una franja activa lunes 09:00–13:00
-- WHEN empresa agenda turno lunes 10:30
+- GIVEN una agenda activa con slot 10:30 libre
+- WHEN empresa agenda turno en ese slot
 - THEN el sistema DEBE permitir la creación
 
-#### Scenario: Turno fuera de franja
+#### Scenario: Turno fuera de agenda
 
-- GIVEN franjas activas solo lunes 09:00–13:00
-- WHEN empresa agenda turno lunes 15:00
+- GIVEN agendas activas sin slot para el horario elegido
+- WHEN empresa intenta agendar
 - THEN el sistema DEBE rechazar con mensaje indicando horario no disponible
 
-### Requirement: Franjas desactivadas
+### Requirement: Agendas desactivadas
 
-Una franja con `activa: false` NO DEBE considerarse al validar nuevos turnos. Turnos ya existentes en esa franja NO DEBEN cancelarse automáticamente.
+Una agenda con `activa: false` NO DEBE considerarse al validar nuevos turnos. Turnos ya existentes NO DEBEN cancelarse automáticamente.

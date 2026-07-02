@@ -2,6 +2,7 @@ import type { Rol } from "@/models/types";
 
 const ROLE_PREFIXES: Record<Rol, string> = {
   admin: "/admin",
+  administrativo: "/administrativo",
   empresa: "/empresa",
   profesional: "/profesional",
 };
@@ -11,6 +12,9 @@ export function getDashboardForRole(rol: Rol): string {
 }
 
 export function canAccessPath(rol: Rol, pathname: string): boolean {
+  if (pathname.startsWith("/administrativo")) {
+    return rol === "administrativo";
+  }
   if (pathname.startsWith("/admin")) {
     return rol === "admin";
   }
@@ -39,6 +43,7 @@ export function isPublicPath(pathname: string): boolean {
 export function isProtectedAppPath(pathname: string): boolean {
   return (
     pathname.startsWith("/admin") ||
+    pathname.startsWith("/administrativo") ||
     pathname.startsWith("/empresa") ||
     pathname.startsWith("/profesional")
   );

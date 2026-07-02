@@ -9,6 +9,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "seed": "tsx scripts/seed.ts",
+    "migrate-agendas": "tsx scripts/migrate-franjas-to-agendas.ts",
     "purge-audit": "tsx scripts/purge-audit.ts"
   },
   "dependencies": {
