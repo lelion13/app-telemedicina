@@ -1,0 +1,8 @@
+change: profesional-consulta-flow
+status: in_progress
+phase: implementation
+created: 2026-07-03
+description: Flujo E2E profesional atiende turnos de agendas v2 con videollamada LiveKit
+parent_archive: openspec/changes/archive/2026-06-30-roles-and-agendas
+artifacts:
+  - proposal.md

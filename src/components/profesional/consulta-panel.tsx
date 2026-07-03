@@ -43,6 +43,12 @@ type GpsData = {
   timestamp?: string;
 } | null;
 
+type VentanaPaciente = {
+  status: "before_window" | "in_window" | "expired";
+  validFrom: string;
+  tokenExpiraEn: string;
+};
+
 function agendaLabel(agenda?: TurnoDetalle["agendaId"]) {
   if (!agenda) return null;
   const fecha = new Date(agenda.fecha).toLocaleDateString("es-AR", {
@@ -53,10 +59,29 @@ function agendaLabel(agenda?: TurnoDetalle["agendaId"]) {
   return `${agenda.nombre || "Agenda"} · ${fecha} · ${agenda.horaInicio}–${agenda.horaFin}`;
 }
 
+function ventanaPacienteMensaje(ventana: VentanaPaciente): string {
+  const format = (iso: string) =>
+    new Date(iso).toLocaleString("es-AR", {
+      dateStyle: "short",
+      timeStyle: "short",
+      timeZone: "America/Argentina/Buenos_Aires",
+    });
+
+  switch (ventana.status) {
+    case "before_window":
+      return `El paciente podrá ingresar desde ${format(ventana.validFrom)}. Podés iniciar la consulta y esperar en la sala.`;
+    case "expired":
+      return `El link del paciente expiró el ${format(ventana.tokenExpiraEn)}.`;
+    default:
+      return `El paciente puede ingresar hasta ${format(ventana.tokenExpiraEn)}.`;
+  }
+}
+
 export function ConsultaProfesionalPanel({ turnoId }: { turnoId: string }) {
   const router = useRouter();
   const [turno, setTurno] = useState<TurnoDetalle | null>(null);
   const [gps, setGps] = useState<GpsData>(null);
+  const [ventanaPaciente, setVentanaPaciente] = useState<VentanaPaciente | null>(null);
   const [evolucion, setEvolucion] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -73,6 +98,7 @@ export function ConsultaProfesionalPanel({ turnoId }: { turnoId: string }) {
     const data = await res.json();
     setTurno(data.turno);
     setGps(data.gps ?? null);
+    setVentanaPaciente(data.ventanaPaciente ?? null);
     setEvolucion(
       data.turno?.evolucion?.texto ?? data.turno?.notasProfesional ?? "",
     );
@@ -123,8 +149,12 @@ export function ConsultaProfesionalPanel({ turnoId }: { turnoId: string }) {
   }
 
   async function cerrarConsulta(estado: "finalizado" | "ausente") {
-    if (estado === "finalizado" && !evolucion.trim()) {
-      setError("La evolución es obligatoria para finalizar la consulta");
+    if (!evolucion.trim()) {
+      setError(
+        estado === "finalizado"
+          ? "La evolución es obligatoria para finalizar la consulta"
+          : "La evolución es obligatoria al marcar ausente",
+      );
       return;
     }
 
@@ -203,6 +233,17 @@ export function ConsultaProfesionalPanel({ turnoId }: { turnoId: string }) {
           <p className="text-sm text-mist-400">{fecha}</p>
           <p className="text-sm text-mist-400">{turno.empresaId?.nombre}</p>
           {agenda && <p className="text-sm text-clinical-700">{agenda}</p>}
+          {ventanaPaciente && (
+            <p
+              className={`mt-2 rounded-lg p-3 text-sm ${
+                ventanaPaciente.status === "in_window"
+                  ? "bg-signal-verified/10 text-clinical-900"
+                  : "bg-paper-50 text-mist-400"
+              }`}
+            >
+              {ventanaPacienteMensaje(ventanaPaciente)}
+            </p>
+          )}
         </div>
 
         {paciente && (

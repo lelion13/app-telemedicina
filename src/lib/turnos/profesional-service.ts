@@ -1,9 +1,12 @@
 import connectDB from "@/lib/db";
+import { getAgendaDayRange } from "@/lib/agenda/slot-status";
+import { getAgendaDayKey, parseAgendaDayKey } from "@/lib/agenda/slots";
 import { logConsultaEvent } from "@/lib/consulta/audit";
 import { getActiveAgendaIds } from "@/lib/agenda/active";
 import { notifyTurnoActualizado } from "@/lib/realtime/notify";
 import { TurnoValidationError } from "@/lib/turnos/errors";
 import { buildEvolucionPayload } from "@/lib/turnos/evolucion";
+import { getPatientLinkWindow } from "@/lib/turnos/patient-window";
 import {
   canCloseConsulta,
   canStartConsulta,
@@ -15,16 +18,8 @@ import { Agenda, RegistroGPS, Turno } from "@/models";
 import type { TurnoEstado } from "@/models/types";
 import { Types } from "mongoose";
 
-function startOfToday(): Date {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
-function endOfToday(): Date {
-  const d = new Date();
-  d.setHours(23, 59, 59, 999);
-  return d;
+function getTodayRangeArgentina(): { desde: Date; hasta: Date } {
+  return getAgendaDayRange(parseAgendaDayKey(getAgendaDayKey(new Date())));
 }
 
 async function assertTurnoOnActiveAgenda(turno: { agendaId?: Types.ObjectId | null }) {
@@ -48,7 +43,7 @@ export async function listTurnosForProfesional(filters: {
   await connectDB();
 
   const activeAgendaIds = await getActiveAgendaIds(
-    filters.soloHoy ? startOfToday() : new Date(),
+    filters.soloHoy ? parseAgendaDayKey(getAgendaDayKey(new Date())) : new Date(),
   );
 
   if (activeAgendaIds.length === 0) {
@@ -68,10 +63,8 @@ export async function listTurnosForProfesional(filters: {
   }
 
   if (filters.soloHoy) {
-    query.fechaHoraProgramada = {
-      $gte: startOfToday(),
-      $lte: endOfToday(),
-    };
+    const { desde, hasta } = getTodayRangeArgentina();
+    query.fechaHoraProgramada = { $gte: desde, $lte: hasta };
   } else if (filters.desde || filters.hasta) {
     query.fechaHoraProgramada = {
       ...(filters.desde ? { $gte: filters.desde } : {}),
@@ -185,25 +178,25 @@ export async function closeTurno(
 
   turno.estado = estado;
 
-  if (estado === "finalizado") {
-    const texto = evolucionTexto?.trim() ?? turno.evolucion?.texto?.trim();
-    if (!texto) {
-      throw new TurnoValidationError(
-        "La evolución es obligatoria al finalizar la consulta",
-      );
-    }
-
-    const gpsRegistro = await RegistroGPS.findOne({ turnoId })
-      .sort({ timestamp: -1 })
-      .select("_id")
-      .lean();
-
-    turno.evolucion = buildEvolucionPayload({
-      texto,
-      gpsRegistroId: gpsRegistro?._id,
-    });
-    turno.notasProfesional = texto;
+  const texto = evolucionTexto?.trim() ?? turno.evolucion?.texto?.trim();
+  if (!texto) {
+    throw new TurnoValidationError(
+      estado === "finalizado"
+        ? "La evolución es obligatoria al finalizar la consulta"
+        : "La evolución es obligatoria al marcar ausente",
+    );
   }
+
+  const gpsRegistro = await RegistroGPS.findOne({ turnoId })
+    .sort({ timestamp: -1 })
+    .select("_id")
+    .lean();
+
+  turno.evolucion = buildEvolucionPayload({
+    texto,
+    gpsRegistroId: gpsRegistro?._id,
+  });
+  turno.notasProfesional = texto;
 
   await turno.save();
   await logConsultaEvent(turnoId, "llamada_finalizada", { estado });
@@ -233,4 +226,22 @@ export async function getTurnoForProfesional(turnoId: string, profesionalId: str
   }
 
   return turno;
+}
+
+export function buildProfesionalTurnoConsultaMeta(turno: {
+  fechaHoraProgramada: Date;
+  tokenExpiraEn: Date;
+}) {
+  const ventanaPaciente = getPatientLinkWindow(
+    turno.fechaHoraProgramada,
+    turno.tokenExpiraEn,
+  );
+
+  return {
+    ventanaPaciente: {
+      status: ventanaPaciente.status,
+      validFrom: ventanaPaciente.validFrom.toISOString(),
+      tokenExpiraEn: ventanaPaciente.tokenExpiraEn.toISOString(),
+    },
+  };
 }

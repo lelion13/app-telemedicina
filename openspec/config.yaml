@@ -12,7 +12,8 @@ context: |
   empresa (turnos de su tenant en agendas asignadas), profesional (atención + evolución),
   paciente (sin cuenta, token).
   Entidad central v2: Agenda (creada por administrativo).
-  Change activo: roles-and-agendas (reemplaza modelo MVP de franjas globales admin).
+  Convenciones operativas: docs/conventions.md (fechas AR, scripts VPS, prod vs local).
+  Change activo: profesional-consulta-flow (propuesta 2026-07-03).
 
 rules:
   proposal:
@@ -40,3 +41,5 @@ rules:
     coverage_threshold: 0
   archive:
     - Advertir antes de fusionar deltas destructivos en specs principales
+    - Incluir lessons-learned.md con incidentes de prod/VPS si aplica
+    - Actualizar docs/conventions.md cuando una convención nueva evite repetir errores

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import {
+  buildProfesionalTurnoConsultaMeta,
   closeTurno,
   getTurnoForProfesional,
   saveEvolucionForTurno,
@@ -43,6 +44,10 @@ export async function GET(_request: Request, context: RouteContext) {
           timestamp: gps.timestamp,
         }
       : null,
+    ...buildProfesionalTurnoConsultaMeta({
+      fechaHoraProgramada: turno.fechaHoraProgramada,
+      tokenExpiraEn: turno.tokenExpiraEn,
+    }),
   });
 }
 

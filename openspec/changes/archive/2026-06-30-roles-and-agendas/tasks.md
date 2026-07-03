@@ -45,9 +45,9 @@
 ## Phase 7: Docs, verify, deploy
 
 - [x] 7.1 Actualizar `docs/deploy.md` y `prompt.md` con modelo v2
-- [x] 7.2 `sdd-verify` + fix gaps
-- [ ] 7.3 Deploy VPS + smoke manual por rol
-- [x] 7.4 `sdd-archive` al completar
+- [x] 7.2 `sdd-verify` + fix gaps (timezone, migración VPS)
+- [x] 7.3 Smoke manual por rol — validado en prod (agenda 2/7, empresa agendando)
+- [x] 7.4 `sdd-archive` + `docs/conventions.md` + lessons-learned
 
 ## Dependencias
 

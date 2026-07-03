@@ -3,15 +3,11 @@ status: archived
 phase: complete
 created: 2026-06-30
 archived: 2026-06-30
-description: Redefinición de 5 roles y modelo Agenda creada por administrativo
+closed: 2026-07-03
+operational_validation: 2026-07-03
+description: Redefinición de 5 roles y modelo Agenda creada por administrativo — cerrado con smoke VPS OK
 supersedes: polish-admin-empresa-ux
 parent_archive: openspec/changes/archive/2026-06-30-bootstrap-mvp
-roles_target:
-  - admin
-  - administrativo
-  - empresa
-  - profesional
-  - paciente
 artifacts:
   - proposal.md
   - design.md
@@ -23,3 +19,9 @@ artifacts:
   - specs/turnos/spec.md
   - specs/profesional/spec.md
   - tasks.md
+  - verify-report.md
+  - lessons-learned.md
+  - README.md
+project_docs:
+  - docs/conventions.md
+  - docs/deploy.md

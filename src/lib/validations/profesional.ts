@@ -18,10 +18,13 @@ export const closeTurnoSchema = z
     evolucion: z.string().trim().optional(),
   })
   .superRefine((data, ctx) => {
-    if (data.estado === "finalizado" && !data.evolucion?.trim()) {
+    if (!data.evolucion?.trim()) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "La evolución es obligatoria al finalizar la consulta",
+        message:
+          data.estado === "finalizado"
+            ? "La evolución es obligatoria al finalizar la consulta"
+            : "La evolución es obligatoria al marcar ausente",
         path: ["evolucion"],
       });
     }

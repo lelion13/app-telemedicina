@@ -85,3 +85,15 @@ El sistema DEBE rechazar turnos cuya `fechaHoraProgramada` no coincida con un **
 ### Requirement: Agendas desactivadas
 
 Una agenda con `activa: false` NO DEBE considerarse al validar nuevos turnos. Turnos ya existentes NO DEBEN cancelarse automáticamente.
+
+### Requirement: Fecha de agenda en timezone Argentina
+
+Al persistir el día de una agenda desde input `YYYY-MM-DD`, el sistema DEBE interpretar el valor como **día calendario en `America/Argentina/Buenos_Aires`**, sin corrimiento por parseo UTC de `new Date("YYYY-MM-DD")`.
+
+#### Scenario: Input date sin corrimiento de día
+
+- GIVEN un administrativo que selecciona el día 2026-07-02 en el formulario
+- WHEN guarda la agenda
+- THEN `Agenda.fecha` DEBE representar el 2 de julio (no el 1 de julio)
+- AND el rol `empresa` DEBE poder listar esa agenda si `fecha >= hoy` en Argentina y tiene visibilidad
+

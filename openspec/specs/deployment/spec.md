@@ -86,3 +86,21 @@ MongoDB DEBE usar volumen Docker persistente para datos.
 ### Requirement: Build multistage
 
 El Dockerfile DEBE usar build multistage: etapa de build + etapa de producción mínima.
+
+### Requirement: Scripts operativos sin repo en VPS
+
+Los procedimientos de migración de datos y seed en producción NO DEBEN requerir `git pull` ni `tsx` en el contenedor `app`. DEBEN documentarse alternativas:
+
+- Scripts **mongosh** descargables por `curl` (un solo archivo), o
+- Bundles **Node** incluidos en la imagen (`*:prod`).
+
+#### Scenario: Migración franjas a agendas en VPS
+
+- GIVEN un VPS con stack levantado y sin clonar el repo
+- WHEN el operador ejecuta la migración documentada
+- THEN los datos DEBEN migrarse usando `mongosh` o `npm run migrate-agendas:prod` en la imagen
+- AND el comando NO DEBE fallar por ausencia de `tsx`
+
+### Requirement: Migración v2 agendas documentada
+
+`docs/deploy.md` DEBE incluir el paso único de migración `FranjaHoraria` → `Agenda` y el smoke manual por rol (admin, administrativo, empresa, profesional, paciente).

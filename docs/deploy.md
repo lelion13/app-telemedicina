@@ -275,6 +275,26 @@ IMAGE_TAG=sha-<commit-anterior>
 - Verificá que existan agendas activas (`/administrativo/agendas` o migración ejecutada).
 - La empresa debe estar en `empresaIds` de la agenda o la agenda debe ser pública (`empresaIds` vacío).
 
+### Empresa no ve una agenda que el administrativo creó hoy
+
+- **Fecha**: si la agenda se creó antes del fix de timezone, pudo guardarse con el **día anterior**. Editá y guardá la agenda de nuevo, o corregí `fecha` en Mongo (ver `docs/conventions.md`).
+- **Filtro**: empresa solo lista agendas con `fecha >= hoy` (Argentina).
+- **Visibilidad**: confirmá "Todas las empresas" o que tu tenant esté en `empresaIds`.
+- **Debug**:
+
+```bash
+docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T mongo \
+  mongosh telemedicina --quiet --eval 'db.agendas.find({}, {nombre:1, fecha:1, activa:1, empresaIds:1}).toArray()'
+```
+
+## Convenciones de código y datos
+
+Ver `docs/conventions.md` (fechas Argentina, scripts prod vs local, checklist pre-push).
+
+## Smoke flujo profesional + videollamada
+
+Checklist detallado: [`docs/smoke-profesional-consulta.md`](smoke-profesional-consulta.md)
+
 ## Smoke test manual por rol (post-deploy v2)
 
 | Rol | URL | Verificar |

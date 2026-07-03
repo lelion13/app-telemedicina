@@ -31,8 +31,16 @@ describe("validaciones evolución profesional", () => {
     expect(parsed.success).toBe(false);
   });
 
-  it("permite ausente sin evolución", () => {
+  it("exige evolución al marcar ausente", () => {
     const parsed = closeTurnoSchema.safeParse({ estado: "ausente" });
+    expect(parsed.success).toBe(false);
+  });
+
+  it("acepta ausente con evolución", () => {
+    const parsed = closeTurnoSchema.safeParse({
+      estado: "ausente",
+      evolucion: "Paciente no respondió llamada",
+    });
     expect(parsed.success).toBe(true);
   });
 
