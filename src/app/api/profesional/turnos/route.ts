@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { listTurnosForProfesional } from "@/lib/turnos/profesional-service";
 import { listProfesionalTurnosSchema } from "@/lib/validations/profesional";
 import { requireAuth } from "@/lib/require-auth";
+import { extractDocumentId } from "@/lib/mongoose/ref-id";
 
 export async function GET(request: Request) {
   const authResult = await requireAuth(["profesional"]);
@@ -29,18 +30,26 @@ export async function GET(request: Request) {
   });
 
   const profesionalId = authResult.session.user.id;
-  const turnosConAcciones = turnos.map((turno) => ({
-    ...turno,
-    acciones: {
-      puedeTomar:
-        !turno.profesionalId &&
-        (turno.estado === "pendiente" || turno.estado === "confirmado"),
-      puedeAtender:
-        !!turno.profesionalId &&
-        turno.profesionalId.toString() === profesionalId &&
-        ["pendiente", "confirmado", "en_curso"].includes(turno.estado),
-    },
-  }));
+  const turnosConAcciones = turnos.map((turno) => {
+    const turnoProfesionalId = extractDocumentId(
+      turno.profesionalId as string | { _id?: { toString(): string } } | null,
+    );
+    const asignadoAMi = turnoProfesionalId === profesionalId;
+
+    return {
+      ...turno,
+      acciones: {
+        puedeTomar:
+          !turnoProfesionalId &&
+          (turno.estado === "pendiente" || turno.estado === "confirmado"),
+        puedeAtender:
+          asignadoAMi &&
+          (turno.estado === "pendiente" ||
+            turno.estado === "confirmado" ||
+            turno.estado === "en_curso"),
+      },
+    };
+  });
 
   return NextResponse.json({ turnos: turnosConAcciones });
 }

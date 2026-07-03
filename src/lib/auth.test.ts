@@ -39,6 +39,8 @@ describe("authz", () => {
   it("expone rutas públicas sin autenticación", () => {
     expect(isPublicPath("/login")).toBe(true);
     expect(isPublicPath("/consulta/abc123")).toBe(true);
+    expect(isPublicPath("/api/gps")).toBe(true);
+    expect(isPublicPath("/api/livekit/token")).toBe(true);
     expect(isPublicPath("/api/auth/session")).toBe(true);
     expect(isPublicPath("/api/auth/me")).toBe(false);
     expect(isPublicPath("/admin")).toBe(false);

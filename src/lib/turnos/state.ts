@@ -1,12 +1,13 @@
 import type { TurnoEstado } from "@/models/types";
+import { extractDocumentId } from "@/lib/mongoose/ref-id";
 
 type TurnoRef = {
-  profesionalId?: { toString(): string } | string | null;
+  profesionalId?: { _id?: { toString(): string }; toString(): string } | string | null;
   estado: TurnoEstado;
 };
 
 export function canTakeTurno(turno: TurnoRef): boolean {
-  if (turno.profesionalId) {
+  if (extractDocumentId(turno.profesionalId)) {
     return false;
   }
   return turno.estado === "pendiente" || turno.estado === "confirmado";
@@ -16,10 +17,11 @@ export function isAssignedToProfesional(
   turno: TurnoRef,
   profesionalId: string,
 ): boolean {
-  if (!turno.profesionalId) {
+  const turnoProfesionalId = extractDocumentId(turno.profesionalId);
+  if (!turnoProfesionalId) {
     return false;
   }
-  return turno.profesionalId.toString() === profesionalId;
+  return turnoProfesionalId === profesionalId;
 }
 
 export function canStartConsulta(turno: TurnoRef, profesionalId: string): boolean {

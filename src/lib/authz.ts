@@ -34,6 +34,9 @@ export function isPublicPath(pathname: string): boolean {
   if (pathname.startsWith("/consulta/")) {
     return true;
   }
+  if (pathname === "/api/gps" || pathname === "/api/livekit/token") {
+    return true;
+  }
   if (pathname.startsWith("/api/auth") && pathname !== "/api/auth/me") {
     return true;
   }

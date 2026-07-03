@@ -25,6 +25,15 @@ describe("turno state transitions", () => {
       canStartConsulta({ estado: "confirmado", profesionalId: profId }, profId),
     ).toBe(true);
     expect(
+      canStartConsulta(
+        {
+          estado: "confirmado",
+          profesionalId: { _id: { toString: () => profId }, nombre: "Ana" },
+        },
+        profId,
+      ),
+    ).toBe(true);
+    expect(
       canStartConsulta({ estado: "confirmado", profesionalId: "otro" }, profId),
     ).toBe(false);
   });

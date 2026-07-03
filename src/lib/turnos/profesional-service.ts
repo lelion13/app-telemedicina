@@ -7,6 +7,7 @@ import { notifyTurnoActualizado } from "@/lib/realtime/notify";
 import { TurnoValidationError } from "@/lib/turnos/errors";
 import { buildEvolucionPayload } from "@/lib/turnos/evolucion";
 import { getPatientLinkWindow } from "@/lib/turnos/patient-window";
+import { extractDocumentId } from "@/lib/mongoose/ref-id";
 import {
   canCloseConsulta,
   canStartConsulta,
@@ -138,7 +139,7 @@ export async function saveEvolucionForTurno(
   }
 
   if (
-    turno.profesionalId?.toString() !== profesionalId ||
+    extractDocumentId(turno.profesionalId) !== profesionalId ||
     turno.estado !== "en_curso"
   ) {
     throw new TurnoValidationError("No podés registrar evolución en esta consulta");
@@ -218,10 +219,8 @@ export async function getTurnoForProfesional(turnoId: string, profesionalId: str
     return null;
   }
 
-  if (
-    turno.profesionalId &&
-    turno.profesionalId.toString() !== profesionalId
-  ) {
+  const turnoProfesionalId = extractDocumentId(turno.profesionalId);
+  if (turnoProfesionalId && turnoProfesionalId !== profesionalId) {
     return null;
   }
 
