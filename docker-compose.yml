@@ -68,7 +68,7 @@ services:
       retries: 3
 
   livekit:
-    image: livekit/livekit-server:v1.8.0
+    image: livekit/livekit-server:v1.9.12
     container_name: telemedicina-livekit
     restart: unless-stopped
     command: --config /etc/livekit.yaml --node-ip ${LIVEKIT_NODE_IP:-}

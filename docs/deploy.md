@@ -74,7 +74,7 @@ docker compose --env-file .env.prod -f docker-compose.prod.yml <comando>
 
 ```bash
 openssl rand -base64 32   # NEXTAUTH_SECRET, AUTH_SECRET, PATIENT_TOKEN_SECRET
-docker run --rm livekit/livekit-server:v1.8.0 generate-keys   # LIVEKIT_API_KEY + SECRET
+docker run --rm livekit/livekit-server:v1.9.12 generate-keys   # LIVEKIT_API_KEY + SECRET
 ```
 
 Completá `LIVEKIT_NODE_IP` con la **IP pública** del VPS.
@@ -269,6 +269,26 @@ IMAGE_TAG=sha-<commit-anterior>
 - DNS `livekit.telemedicina.lionapp.cloud` resuelve a esa IP
 - UDP 50000-50100 abierto en firewall
 - `LIVEKIT_URL` usa `wss://`
+- Imagen LiveKit **v1.9.12+** (cliente JS 2.20 usa `/rtc/v1`; v1.8 responde 404)
+- CSP de la app debe permitir **wss + https** al host LiveKit (validate fallback)
+
+Verificación rápida desde tu PC:
+
+```bash
+curl -sI https://livekit.telemedicina.lionapp.cloud/
+curl -sI https://livekit.telemedicina.lionapp.cloud/rtc/v1/validate
+```
+
+Esperado tras upgrade: `/` → 200 OK; `/rtc/v1/validate` → 401/404 con body LiveKit (no `404 page not found` de Go puro en `/rtc`).
+
+Actualizar solo LiveKit en VPS:
+
+```bash
+cd /docker/app-telemedicina
+git pull
+./scripts/vps-compose.sh pull livekit
+./scripts/vps-compose.sh up -d livekit
+```
 
 ### Empresa no puede agendar turnos
 

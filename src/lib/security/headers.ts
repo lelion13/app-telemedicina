@@ -7,7 +7,10 @@ function liveKitConnectSources(): string {
   }
   try {
     const parsed = new URL(url);
-    return `${parsed.protocol}//${parsed.host}`;
+    const wsOrigin = `${parsed.protocol}//${parsed.host}`;
+    const httpOrigin = wsOrigin.replace(/^wss:/, "https:").replace(/^ws:/, "http:");
+    // livekit-client usa fetch HTTPS a /rtc/v1/validate antes del fallback a /rtc
+    return `${wsOrigin} ${httpOrigin}`;
   } catch {
     return "wss: ws:";
   }

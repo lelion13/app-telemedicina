@@ -70,10 +70,28 @@ describe("retención de auditoría", () => {
 });
 
 describe("headers de seguridad", () => {
+  const previousLiveKitUrl = process.env.LIVEKIT_URL;
+
+  afterEach(() => {
+    if (previousLiveKitUrl === undefined) {
+      delete process.env.LIVEKIT_URL;
+    } else {
+      process.env.LIVEKIT_URL = previousLiveKitUrl;
+    }
+  });
+
   it("incluye CSP sin frame-ancestors permisivos", () => {
     const csp = buildContentSecurityPolicy();
     expect(csp).toContain("frame-ancestors 'none'");
     expect(csp).toContain("default-src 'self'");
+  });
+
+  it("permite wss y https al host LiveKit para señalización WebRTC", () => {
+    process.env.LIVEKIT_URL = "wss://livekit.telemedicina.lionapp.cloud";
+    const csp = buildContentSecurityPolicy();
+    expect(csp).toContain(
+      "connect-src 'self' wss://livekit.telemedicina.lionapp.cloud https://livekit.telemedicina.lionapp.cloud",
+    );
   });
 });
 
